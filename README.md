@@ -1,36 +1,138 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OpenTetris
 
-## Getting Started
+A modern, open-source implementation of the classic Tetris game built with Next.js, TypeScript, and Tailwind CSS. This project aims to provide a clean, educational codebase for learning game development with modern web technologies.
 
-First, run the development server:
+## 🎮 Features
+
+- **Classic Tetris Gameplay**
+
+  - Standard seven tetromino pieces (I, O, T, S, Z, J, L)
+  - Super Rotation System (SRS)
+  - Ghost piece preview
+  - Hold piece functionality
+  - Next pieces preview
+  - Wall kick system
+
+- **Modern Tech Stack**
+  - Built with Next.js 14
+  - Written in TypeScript
+  - Styled with Tailwind CSS
+  - Custom React Hooks
+  - Mobile-responsive design
+
+## 🎯 Game Controls
+
+- **←/→** : Move piece left/right
+- **↓** : Soft drop
+- **↑** : Rotate piece
+- **Space** : Hard drop
+- **C** : Hold piece
+- **P** : Pause game
+- **R** : Reset game
+
+## 🛠️ Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/brown2020/opentetris.git
+cd opentetris
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Run the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🏗️ Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+opentetris/
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx      # Root layout
+│   │   └── page.tsx        # Main page
+│   │
+│   ├── components/
+│   │   ├── tetris/         # Game components
+│   │   │   ├── Board.tsx   # Game board
+│   │   │   ├── Cell.tsx    # Cell component
+│   │   │   ├── Controls.tsx
+│   │   │   ├── GameOver.tsx
+│   │   │   ├── HoldPiece.tsx
+│   │   │   ├── NextPiece.tsx
+│   │   │   ├── Score.tsx
+│   │   │   └── TetrisGame.tsx
+│   │   └── ui/
+│   │       ├── Button.tsx
+│   │       └── Card.tsx
+│   │
+│   ├── hooks/
+│   │   ├── useGameLogic.ts
+│   │   ├── useInterval.ts
+│   │   └── useKeyboard.ts
+│   │
+│   ├── lib/
+│   │   ├── constants.ts
+│   │   └── utils.ts
+│   │
+│   └── types/
+│       └── index.ts
+```
 
-## Learn More
+## 🎮 Game Mechanics
 
-To learn more about Next.js, take a look at the following resources:
+### Scoring System
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Single line: 100 × level
+- Double line: 300 × level
+- Triple line: 500 × level
+- Tetris (4 lines): 800 × level
+- Soft drop: 1 point per cell
+- Hard drop: 2 points per cell
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Level Progression
 
-## Deploy on Vercel
+- Level increases every 10 lines
+- Speed increases with each level
+- Points multiplied by current level
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🚀 Contributing
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📞 Support & Questions
+
+For support or questions, please contact:
+
+- Email: info@ignitechannel.com
+- GitHub Issues: [Open an issue](https://github.com/brown2020/opentetris/issues)
+
+## 📜 License
+
+This project is open source and available under the MIT License.
+
+## 🙏 Acknowledgments
+
+- Original Tetris design by Alexey Pajitnov
+- Next.js and React communities
+- All contributors and supporters
+
+---
+
+[View Demo](https://github.com/brown2020/opentetris) | [Report Bug](https://github.com/brown2020/opentetris/issues) | [Request Feature](https://github.com/brown2020/opentetris/issues)
