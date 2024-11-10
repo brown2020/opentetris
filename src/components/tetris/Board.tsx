@@ -93,7 +93,7 @@ const Board: React.FC<BoardProps> = ({
         gridTemplateColumns: `repeat(${BOARD_WIDTH}, minmax(0, 1fr))`,
         width: "fit-content",
       }}
-      aria-label="Tetris game board"
+      aria-label="OpenTetris game board"
     >
       {board.map((row, rowIndex) =>
         row.map((_, colIndex) => {

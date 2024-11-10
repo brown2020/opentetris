@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import "../styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "Tetris Game",
-  description: "A modern Tetris clone built with Next.js and TypeScript",
+  title: "OpenTetris Game",
+  description:
+    "A modern Open Source Tetris clone built with Next.js and TypeScript",
 };
 
 export default function RootLayout({
