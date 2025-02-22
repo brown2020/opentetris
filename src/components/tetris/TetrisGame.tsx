@@ -83,7 +83,7 @@ const TetrisGame: React.FC = () => {
           ghostPiece={ghostPiece}
         />
         {gameState === "PAUSED" && (
-          <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center">
             <div className="text-3xl font-bold text-white">PAUSED</div>
           </div>
         )}

@@ -47,7 +47,7 @@ const Score: React.FC<ScoreProps> = ({
         </div>
       </div>
 
-      <div className="bg-gray-800 p-2 rounded text-center">
+      <div className="bg-gray-800 p-2 rounded-sm text-center">
         <div className="text-sm text-gray-400">Level</div>
         <div className="text-2xl font-bold text-white">{level}</div>
       </div>

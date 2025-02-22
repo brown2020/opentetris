@@ -88,7 +88,7 @@ const Board: React.FC<BoardProps> = ({
 
   return (
     <div
-      className={`grid gap-0 bg-gray-900 p-1 rounded border-2 border-gray-700 ${className}`}
+      className={`grid gap-0 bg-gray-900 p-1 rounded-sm border-2 border-gray-700 ${className}`}
       style={{
         gridTemplateColumns: `repeat(${BOARD_WIDTH}, minmax(0, 1fr))`,
         width: "fit-content",

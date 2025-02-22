@@ -11,7 +11,7 @@ interface GameOverProps {
 
 const GameOver: React.FC<GameOverProps> = ({ score, onRestart, highScore }) => {
   return (
-    <div className="absolute inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center">
+    <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center">
       <div className="bg-gray-800 p-8 rounded-lg shadow-xl text-center">
         <h2 className="text-3xl font-bold text-red-500 mb-4">Game Over</h2>
 
