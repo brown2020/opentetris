@@ -1,3 +1,4 @@
+"use client";
 // src/components/tetris/TetrisGame.tsx
 import React from "react";
 import { useInterval } from "@/hooks/useInterval";
@@ -31,6 +32,7 @@ const TetrisGame: React.FC = () => {
     movePiece,
     rotatePiece,
     hardDrop,
+    softDropStep,
     holdPiece,
     resetGame,
     pauseGame,
@@ -41,10 +43,7 @@ const TetrisGame: React.FC = () => {
     onMoveLeft: () => movePiece(-1, 0),
     onMoveRight: () => movePiece(1, 0),
     onMoveDown: () => {
-      if (movePiece(0, 1)) {
-        // Add points for soft drop
-        // score update is handled in the game logic
-      }
+      softDropStep();
     },
     onRotate: rotatePiece,
     onHardDrop: hardDrop,
@@ -105,10 +104,7 @@ const TetrisGame: React.FC = () => {
                 movePiece(1, 0);
                 break;
               case "down":
-                if (movePiece(0, 1)) {
-                  // Add points for soft drop
-                  // score update is handled in the game logic
-                }
+                softDropStep();
                 break;
             }
           }}

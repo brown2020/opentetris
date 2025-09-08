@@ -69,6 +69,26 @@ export function generateNewPiece(type?: TetrominoType): Tetromino {
   };
 }
 
+// 7-bag generator for fair piece distribution
+export const TETROMINO_TYPES: TetrominoType[] = [
+  "I",
+  "O",
+  "T",
+  "S",
+  "Z",
+  "J",
+  "L",
+];
+
+export function generateBag(): TetrominoType[] {
+  const bag = [...TETROMINO_TYPES];
+  for (let i = bag.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [bag[i], bag[j]] = [bag[j], bag[i]];
+  }
+  return bag;
+}
+
 // Check if move is valid
 export function isValidMove(piece: Tetromino, board: Board): boolean {
   const shape = getRotatedShape(piece);

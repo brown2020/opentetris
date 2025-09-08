@@ -1,5 +1,5 @@
 // src/components/tetris/Board.tsx
-import React from "react";
+import React, { useMemo } from "react";
 import Cell from "./Cell";
 import { BOARD_WIDTH } from "@/lib/constants";
 import { Board as BoardType, Tetromino } from "@/types";
@@ -18,50 +18,43 @@ const Board: React.FC<BoardProps> = ({
   ghostPiece,
   className = "",
 }) => {
-  // Function to check if a cell is part of the current piece
-  const isCurrentPieceCell = (row: number, col: number): boolean => {
-    if (!currentPiece) return false;
-
+  // Precompute occupied board coordinates for current and ghost pieces
+  const currentCells = useMemo(() => {
+    if (!currentPiece) return null;
     const shape = getRotatedShape(currentPiece);
-    const pieceRow = row - currentPiece.position.y;
-    const pieceCol = col - currentPiece.position.x;
-
-    if (
-      pieceRow >= 0 &&
-      pieceRow < shape.length &&
-      pieceCol >= 0 &&
-      pieceCol < shape[0].length
-    ) {
-      return Boolean(shape[pieceRow][pieceCol]);
+    const set = new Set<string>();
+    for (let y = 0; y < shape.length; y++) {
+      for (let x = 0; x < shape[y].length; x++) {
+        if (shape[y][x]) {
+          const boardY = currentPiece.position.y + y;
+          const boardX = currentPiece.position.x + x;
+          set.add(`${boardY},${boardX}`);
+        }
+      }
     }
+    return set;
+  }, [currentPiece]);
 
-    return false;
-  };
-
-  // Function to check if a cell is part of the ghost piece
-  const isGhostPieceCell = (row: number, col: number): boolean => {
-    if (!ghostPiece) return false;
-
+  const ghostCells = useMemo(() => {
+    if (!ghostPiece) return null;
     const shape = getRotatedShape(ghostPiece);
-    const pieceRow = row - ghostPiece.position.y;
-    const pieceCol = col - ghostPiece.position.x;
-
-    if (
-      pieceRow >= 0 &&
-      pieceRow < shape.length &&
-      pieceCol >= 0 &&
-      pieceCol < shape[0].length
-    ) {
-      return Boolean(shape[pieceRow][pieceCol]);
+    const set = new Set<string>();
+    for (let y = 0; y < shape.length; y++) {
+      for (let x = 0; x < shape[y].length; x++) {
+        if (shape[y][x]) {
+          const boardY = ghostPiece.position.y + y;
+          const boardX = ghostPiece.position.x + x;
+          set.add(`${boardY},${boardX}`);
+        }
+      }
     }
-
-    return false;
-  };
+    return set;
+  }, [ghostPiece]);
 
   // Function to get cell content (board, current piece, or ghost piece)
   const getCellContent = (row: number, col: number) => {
     // First check if it's part of the current piece
-    if (isCurrentPieceCell(row, col)) {
+    if (currentCells?.has(`${row},${col}`)) {
       return {
         type: currentPiece!.type,
         isActive: true,
@@ -70,7 +63,10 @@ const Board: React.FC<BoardProps> = ({
     }
 
     // Then check if it's part of the ghost piece
-    if (isGhostPieceCell(row, col) && !isCurrentPieceCell(row, col)) {
+    if (
+      ghostCells?.has(`${row},${col}`) &&
+      !currentCells?.has(`${row},${col}`)
+    ) {
       return {
         type: ghostPiece!.type,
         isActive: false,

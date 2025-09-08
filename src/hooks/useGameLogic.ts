@@ -1,10 +1,11 @@
 // src/hooks/useGameLogic.ts
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Board, Tetromino, TetrominoType, GameState } from "@/types";
 import { POINTS, PREVIEW_PIECES, INITIAL_SPEED } from "@/lib/constants";
 import {
   createEmptyBoard,
   generateNewPiece,
+  generateBag,
   isValidMove,
   addPieceToBoard,
   clearLines,
@@ -20,6 +21,7 @@ export function useGameLogic() {
   const [board, setBoard] = useState<Board>(createEmptyBoard());
   const [currentPiece, setCurrentPiece] = useState<Tetromino | null>(null);
   const [nextPieces, setNextPieces] = useState<TetrominoType[]>([]);
+  const bagRef = useRef<TetrominoType[]>([]);
   const [heldPiece, setHeldPiece] = useState<TetrominoType | null>(null);
   const [canHold, setCanHold] = useState(true);
   const [ghostPiece, setGhostPiece] = useState<Tetromino | null>(null);
@@ -33,11 +35,20 @@ export function useGameLogic() {
   const [dropSpeed, setDropSpeed] = useState(INITIAL_SPEED);
 
   // Get next piece from queue
-  const getNextPiece = useCallback(() => {
-    const [next, ...rest] = nextPieces;
-    setNextPieces([...rest, generateNewPiece().type]);
+  const getNextPiece = useCallback((): TetrominoType => {
+    // Ensure bag has pieces
+    if (bagRef.current.length === 0) {
+      bagRef.current.push(...generateBag());
+    }
+    const next = bagRef.current.shift() as TetrominoType;
+    // Refill to keep previews populated
+    if (bagRef.current.length < PREVIEW_PIECES + 1) {
+      bagRef.current.push(...generateBag());
+    }
+    // Update preview state from the bag head
+    setNextPieces(bagRef.current.slice(0, PREVIEW_PIECES));
     return next;
-  }, [nextPieces]);
+  }, []);
 
   // Update ghost piece
   const updateGhostPiece = useCallback(
@@ -166,6 +177,15 @@ export function useGameLogic() {
     movePiece(0, dropDistance);
   }, [currentPiece, gameState, board, movePiece]);
 
+  // Soft drop one step (player initiated)
+  const softDropStep = useCallback(() => {
+    const moved = movePiece(0, 1);
+    if (moved) {
+      setScore((prev) => prev + POINTS.SOFT_DROP);
+    }
+    return moved;
+  }, [movePiece]);
+
   // Hold piece
   const holdPiece = useCallback(() => {
     if (!currentPiece || !canHold || gameState !== "PLAYING") return;
@@ -196,14 +216,14 @@ export function useGameLogic() {
   // Reset game
   const resetGame = useCallback(() => {
     const emptyBoard = createEmptyBoard();
-    const pieces: TetrominoType[] = [];
-
-    // Initialize preview pieces
-    for (let i = 0; i < PREVIEW_PIECES; i++) {
-      pieces.push(generateNewPiece().type);
+    // Initialize bag and previews
+    bagRef.current = generateBag();
+    if (bagRef.current.length < PREVIEW_PIECES + 1) {
+      bagRef.current.push(...generateBag());
     }
-
-    const firstPiece = generateNewPiece();
+    setNextPieces(bagRef.current.slice(0, PREVIEW_PIECES));
+    const firstType = getNextPiece();
+    const firstPiece = generateNewPiece(firstType);
     const ghostPiece = getGhostPiecePosition(firstPiece, emptyBoard);
 
     // Reset all state
@@ -215,10 +235,9 @@ export function useGameLogic() {
     setCanHold(true);
     setGameState("PLAYING");
     setDropSpeed(INITIAL_SPEED);
-    setNextPieces(pieces);
     setCurrentPiece(firstPiece);
     setGhostPiece(ghostPiece);
-  }, []);
+  }, [getNextPiece]);
 
   // Pause game
   const pauseGame = useCallback(() => {
@@ -249,6 +268,7 @@ export function useGameLogic() {
     movePiece,
     rotatePiece,
     hardDrop,
+    softDropStep,
     holdPiece,
     resetGame,
     pauseGame,

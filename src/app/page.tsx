@@ -1,6 +1,4 @@
 // src/app/page.tsx
-"use client";
-
 import TetrisGame from "@/components/tetris/TetrisGame";
 
 export default function Home() {

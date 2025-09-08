@@ -84,7 +84,7 @@ const PreviewBox: React.FC<PreviewBoxProps> = ({
                 border
                 ${
                   isActive
-                    ? `${color} border-t-white/20 border-l-white/20 border-r-black/20 border-b-black/20`
+                    ? `${color.bg} border-t-white/20 border-l-white/20 border-r-black/20 border-b-black/20`
                     : "bg-gray-800 border-gray-700"
                 }
               `}
