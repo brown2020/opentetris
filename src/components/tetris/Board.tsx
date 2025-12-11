@@ -1,5 +1,5 @@
 // src/components/tetris/Board.tsx
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import Cell from "./Cell";
 import { BOARD_WIDTH } from "@/lib/constants";
 import { Board as BoardType, Tetromino } from "@/types";
@@ -12,75 +12,49 @@ interface BoardProps {
   className?: string;
 }
 
+// Helper to compute cell coordinates for a piece
+function getPieceCells(piece: Tetromino | null): Set<string> | null {
+  if (!piece) return null;
+  const shape = getRotatedShape(piece);
+  const set = new Set<string>();
+  for (let y = 0; y < shape.length; y++) {
+    for (let x = 0; x < shape[y].length; x++) {
+      if (shape[y][x]) {
+        set.add(`${piece.position.y + y},${piece.position.x + x}`);
+      }
+    }
+  }
+  return set;
+}
+
 const Board: React.FC<BoardProps> = ({
   board,
   currentPiece,
   ghostPiece,
   className = "",
 }) => {
-  // Precompute occupied board coordinates for current and ghost pieces
-  const currentCells = useMemo(() => {
-    if (!currentPiece) return null;
-    const shape = getRotatedShape(currentPiece);
-    const set = new Set<string>();
-    for (let y = 0; y < shape.length; y++) {
-      for (let x = 0; x < shape[y].length; x++) {
-        if (shape[y][x]) {
-          const boardY = currentPiece.position.y + y;
-          const boardX = currentPiece.position.x + x;
-          set.add(`${boardY},${boardX}`);
-        }
+  const currentCells = useMemo(
+    () => getPieceCells(currentPiece),
+    [currentPiece]
+  );
+  const ghostCells = useMemo(() => getPieceCells(ghostPiece), [ghostPiece]);
+
+  const getCellContent = useCallback(
+    (row: number, col: number) => {
+      const key = `${row},${col}`;
+
+      if (currentCells?.has(key)) {
+        return { type: currentPiece!.type, isActive: true, isGhost: false };
       }
-    }
-    return set;
-  }, [currentPiece]);
 
-  const ghostCells = useMemo(() => {
-    if (!ghostPiece) return null;
-    const shape = getRotatedShape(ghostPiece);
-    const set = new Set<string>();
-    for (let y = 0; y < shape.length; y++) {
-      for (let x = 0; x < shape[y].length; x++) {
-        if (shape[y][x]) {
-          const boardY = ghostPiece.position.y + y;
-          const boardX = ghostPiece.position.x + x;
-          set.add(`${boardY},${boardX}`);
-        }
+      if (ghostCells?.has(key)) {
+        return { type: ghostPiece!.type, isActive: false, isGhost: true };
       }
-    }
-    return set;
-  }, [ghostPiece]);
 
-  // Function to get cell content (board, current piece, or ghost piece)
-  const getCellContent = (row: number, col: number) => {
-    // First check if it's part of the current piece
-    if (currentCells?.has(`${row},${col}`)) {
-      return {
-        type: currentPiece!.type,
-        isActive: true,
-        isGhost: false,
-      };
-    }
-
-    // Then check if it's part of the ghost piece
-    if (
-      ghostCells?.has(`${row},${col}`) &&
-      !currentCells?.has(`${row},${col}`)
-    ) {
-      return {
-        type: ghostPiece!.type,
-        isActive: false,
-        isGhost: true,
-      };
-    }
-
-    // Finally, return the board cell content
-    return {
-      type: board[row][col],
-      isActive: false,
-      isGhost: false,
-    };
-  };
+      return { type: board[row][col], isActive: false, isGhost: false };
+    },
+    [currentCells, ghostCells, currentPiece, ghostPiece, board]
+  );
 
   return (
     <div

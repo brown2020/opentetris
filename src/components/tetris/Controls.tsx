@@ -1,19 +1,19 @@
 // src/components/tetris/Controls.tsx
-import React from 'react';
-import { Button } from '@/components/ui/Button';
-import { 
-  Pause, 
-  Play, 
-  RotateCcw, 
-  ChevronDown, 
-  ChevronLeft, 
-  ChevronRight, 
+import React from "react";
+import { Button } from "@/components/ui/Button";
+import {
+  Pause,
+  Play,
+  RotateCcw,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   ChevronUp,
-  ArrowDown
-} from 'lucide-react';
+  ArrowDown,
+} from "lucide-react";
 
 interface ControlsProps {
-  onMove: (direction: 'left' | 'right' | 'down') => void;
+  onMove: (direction: "left" | "right" | "down") => void;
   onRotate: () => void;
   onHardDrop: () => void;
   onPause: () => void;
@@ -31,7 +31,7 @@ const Controls: React.FC<ControlsProps> = ({
   onReset,
   isPaused,
   gameOver,
-  isMobile = false
+  isMobile = false,
 }) => {
   return (
     <div className="flex flex-col gap-4">
@@ -62,7 +62,7 @@ const Controls: React.FC<ControlsProps> = ({
           className="w-24"
         >
           <RotateCcw className="w-4 h-4 mr-2" />
-          {gameOver ? 'New Game' : 'Reset'}
+          {gameOver ? "New Game" : "Reset"}
         </Button>
       </div>
 
@@ -82,7 +82,7 @@ const Controls: React.FC<ControlsProps> = ({
           <div className="flex gap-2">
             <Button
               variant="ghost"
-              onClick={() => onMove('left')}
+              onClick={() => onMove("left")}
               className="w-12 h-12 rounded-full"
             >
               <ChevronLeft className="w-6 h-6" />
@@ -90,7 +90,7 @@ const Controls: React.FC<ControlsProps> = ({
 
             <Button
               variant="ghost"
-              onClick={() => onMove('down')}
+              onClick={() => onMove("down")}
               className="w-12 h-12 rounded-full"
             >
               <ChevronDown className="w-6 h-6" />
@@ -98,7 +98,7 @@ const Controls: React.FC<ControlsProps> = ({
 
             <Button
               variant="ghost"
-              onClick={() => onMove('right')}
+              onClick={() => onMove("right")}
               className="w-12 h-12 rounded-full"
             >
               <ChevronRight className="w-6 h-6" />
@@ -132,4 +132,4 @@ const Controls: React.FC<ControlsProps> = ({
   );
 };
 
-export default Controls;
+export default React.memo(Controls);

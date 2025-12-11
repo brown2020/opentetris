@@ -35,4 +35,4 @@ const GameOver: React.FC<GameOverProps> = ({ score, onRestart, highScore }) => {
   );
 };
 
-export default GameOver;
+export default React.memo(GameOver);

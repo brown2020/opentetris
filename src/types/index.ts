@@ -29,7 +29,3 @@ export interface TetrominoColor {
   bg: string;
   border: string;
 }
-
-export type TetrominoColors = {
-  readonly [K in TetrominoType]: TetrominoColor;
-};

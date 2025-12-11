@@ -3,6 +3,20 @@ import React from "react";
 import { TetrominoType } from "@/types";
 import { TETROMINO_COLORS } from "@/lib/constants";
 
+// Pre-computed class maps for performance - avoids string concatenation on every render
+const CELL_CLASSES = Object.fromEntries(
+  Object.entries(TETROMINO_COLORS).map(([type, colors]) => [
+    type,
+    {
+      ghost: `w-6 h-6 ${colors.bg} opacity-30 border-2 border-white/30`,
+      active: `w-6 h-6 ${colors.bg} ${colors.border} border-2 brightness-110`,
+      placed: `w-6 h-6 ${colors.bg} ${colors.border} border-2`,
+    },
+  ])
+) as Record<TetrominoType, { ghost: string; active: string; placed: string }>;
+
+const EMPTY_CELL_CLASS = "w-6 h-6 border border-gray-800 bg-gray-900";
+
 interface CellProps {
   type: TetrominoType | null;
   isActive?: boolean;
@@ -15,36 +29,17 @@ const Cell: React.FC<CellProps> = ({
   isGhost = false,
 }) => {
   if (!type) {
-    return (
-      <div
-        className="w-6 h-6 border border-gray-800 bg-gray-900"
-        data-empty="true"
-      />
-    );
+    return <div className={EMPTY_CELL_CLASS} />;
   }
 
-  const baseColor = TETROMINO_COLORS[type];
-  let cellStyle: string;
+  const classes = CELL_CLASSES[type];
+  const cellClass = isGhost
+    ? classes.ghost
+    : isActive
+    ? classes.active
+    : classes.placed;
 
-  if (isGhost) {
-    // Ghost piece is semi-transparent
-    cellStyle = `${baseColor.bg} opacity-30 border-2 border-white/30`;
-  } else if (isActive) {
-    // Active piece has bright borders
-    cellStyle = `${baseColor.bg} ${baseColor.border} border-2 brightness-110`;
-  } else {
-    // Placed pieces
-    cellStyle = `${baseColor.bg} ${baseColor.border} border-2`;
-  }
-
-  return (
-    <div
-      className={`w-6 h-6 ${cellStyle}`}
-      data-type={type}
-      data-active={isActive}
-      data-ghost={isGhost}
-    />
-  );
+  return <div className={cellClass} />;
 };
 
 export default React.memo(Cell);

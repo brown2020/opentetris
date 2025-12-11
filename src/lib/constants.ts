@@ -1,5 +1,5 @@
 // src/lib/constants.ts
-import { TetrominoShapes } from "@/types";
+import { TetrominoShapes, TetrominoType } from "@/types";
 
 // Board dimensions
 export const BOARD_WIDTH = 10;
@@ -10,6 +10,17 @@ export const INITIAL_SPEED = 1000; // Base speed in milliseconds
 export const LEVEL_SPEED_MULTIPLIER = 50; // Speed increase per level
 export const LINES_PER_LEVEL = 10;
 export const PREVIEW_PIECES = 3; // Number of next pieces to show
+
+// All tetromino types
+export const TETROMINO_TYPES: TetrominoType[] = [
+  "I",
+  "O",
+  "T",
+  "S",
+  "Z",
+  "J",
+  "L",
+];
 
 // Scoring system
 export const POINTS = {
@@ -67,8 +78,11 @@ export const TETROMINO_SHAPES: TetrominoShapes = {
   ],
 } as const;
 
-// Visual styles
-export const TETROMINO_COLORS = {
+// Visual styles - must use static class names for Tailwind JIT
+export const TETROMINO_COLORS: Record<
+  TetrominoType,
+  { bg: string; border: string }
+> = {
   I: {
     bg: "bg-cyan-500",
     border:
@@ -104,11 +118,4 @@ export const TETROMINO_COLORS = {
     border:
       "border-t-orange-300 border-l-orange-300 border-r-orange-700 border-b-orange-700",
   },
-} as const;
-
-// Game speeds
-export const SPEEDS = {
-  NORMAL: INITIAL_SPEED,
-  SOFT_DROP: INITIAL_SPEED / 4,
-  HARD_DROP: 0,
 } as const;

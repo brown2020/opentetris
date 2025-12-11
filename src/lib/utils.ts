@@ -1,19 +1,15 @@
 // src/lib/utils.ts
-import { type ClassValue, clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Board, Tetromino, TetrominoType } from "@/types";
 import {
   BOARD_WIDTH,
   BOARD_HEIGHT,
   TETROMINO_SHAPES,
+  TETROMINO_TYPES,
   INITIAL_SPEED,
   LEVEL_SPEED_MULTIPLIER,
+  LINES_PER_LEVEL,
+  POINTS,
 } from "@/lib/constants";
-
-// Styling utility
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Game board creation
 export function createEmptyBoard(): Board {
@@ -22,38 +18,44 @@ export function createEmptyBoard(): Board {
     .map(() => Array(BOARD_WIDTH).fill(null));
 }
 
-// Matrix rotation
-export function rotateMatrix(
-  matrix: readonly (readonly number[])[]
-): number[][] {
-  const N = matrix.length;
-  const rotated = Array(N)
+// Get rotated shape for a piece - direct calculation without iteration
+export function getRotatedShape(piece: Tetromino): number[][] {
+  const shape = piece.shape;
+  const N = shape.length;
+  const rotation = piece.rotation % 4;
+
+  // No rotation needed
+  if (rotation === 0) {
+    return shape.map((row) => [...row]);
+  }
+
+  const rotated: number[][] = Array(N)
     .fill(0)
     .map(() => Array(N).fill(0));
 
-  // Rotate clockwise
   for (let i = 0; i < N; i++) {
     for (let j = 0; j < N; j++) {
-      rotated[j][N - 1 - i] = matrix[i][j];
+      switch (rotation) {
+        case 1: // 90° clockwise
+          rotated[j][N - 1 - i] = shape[i][j];
+          break;
+        case 2: // 180°
+          rotated[N - 1 - i][N - 1 - j] = shape[i][j];
+          break;
+        case 3: // 270° clockwise (90° counter-clockwise)
+          rotated[N - 1 - j][i] = shape[i][j];
+          break;
+      }
     }
   }
 
   return rotated;
 }
 
-// Get rotated shape for a piece
-export function getRotatedShape(piece: Tetromino): number[][] {
-  let shape = piece.shape.map((row) => [...row]);
-  for (let i = 0; i < piece.rotation; i++) {
-    shape = rotateMatrix(shape);
-  }
-  return shape;
-}
-
 // Generate new tetromino piece
 export function generateNewPiece(type?: TetrominoType): Tetromino {
-  const types: TetrominoType[] = ["I", "O", "T", "S", "Z", "J", "L"];
-  const randomType = type || types[Math.floor(Math.random() * types.length)];
+  const randomType =
+    type || TETROMINO_TYPES[Math.floor(Math.random() * TETROMINO_TYPES.length)];
 
   // Create a deep copy of the shape
   const shape = TETROMINO_SHAPES[randomType].map((row) => [...row]);
@@ -70,16 +72,6 @@ export function generateNewPiece(type?: TetrominoType): Tetromino {
 }
 
 // 7-bag generator for fair piece distribution
-export const TETROMINO_TYPES: TetrominoType[] = [
-  "I",
-  "O",
-  "T",
-  "S",
-  "Z",
-  "J",
-  "L",
-];
-
 export function generateBag(): TetrominoType[] {
   const bag = [...TETROMINO_TYPES];
   for (let i = bag.length - 1; i > 0; i--) {
@@ -178,105 +170,102 @@ export function getGhostPiecePosition(
   return ghost;
 }
 
+// SRS (Super Rotation System) wall kicks - defined at module level for performance
+type KickTable = Record<string, readonly { x: number; y: number }[]>;
+
+const STANDARD_KICKS: KickTable = {
+  "01": [
+    { x: 0, y: 0 },
+    { x: -1, y: 0 },
+    { x: -1, y: -1 },
+    { x: 0, y: 2 },
+    { x: -1, y: 2 },
+  ],
+  "12": [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: 1 },
+    { x: 0, y: -2 },
+    { x: 1, y: -2 },
+  ],
+  "23": [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: 1, y: -1 },
+    { x: 0, y: 2 },
+    { x: 1, y: 2 },
+  ],
+  "30": [
+    { x: 0, y: 0 },
+    { x: -1, y: 0 },
+    { x: -1, y: 1 },
+    { x: 0, y: -2 },
+    { x: -1, y: -2 },
+  ],
+} as const;
+
+const I_KICKS: KickTable = {
+  "01": [
+    { x: 0, y: 0 },
+    { x: -2, y: 0 },
+    { x: 1, y: 0 },
+    { x: -2, y: 1 },
+    { x: 1, y: -2 },
+  ],
+  "12": [
+    { x: 0, y: 0 },
+    { x: -1, y: 0 },
+    { x: 2, y: 0 },
+    { x: -1, y: -2 },
+    { x: 2, y: 1 },
+  ],
+  "23": [
+    { x: 0, y: 0 },
+    { x: 2, y: 0 },
+    { x: -1, y: 0 },
+    { x: 2, y: -1 },
+    { x: -1, y: 2 },
+  ],
+  "30": [
+    { x: 0, y: 0 },
+    { x: 1, y: 0 },
+    { x: -2, y: 0 },
+    { x: 1, y: 2 },
+    { x: -2, y: -1 },
+  ],
+} as const;
+
+const O_KICK = [{ x: 0, y: 0 }] as const;
+
 // Get wall kicks based on current rotation state
 export function getWallKicks(
   piece: Tetromino,
   currentRotation: number
-): { x: number; y: number }[] {
-  // SRS (Super Rotation System) wall kicks
-  const standardKicks = {
-    "01": [
-      { x: 0, y: 0 },
-      { x: -1, y: 0 },
-      { x: -1, y: -1 },
-      { x: 0, y: 2 },
-      { x: -1, y: 2 },
-    ],
-    "12": [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 1, y: 1 },
-      { x: 0, y: -2 },
-      { x: 1, y: -2 },
-    ],
-    "23": [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: 1, y: -1 },
-      { x: 0, y: 2 },
-      { x: 1, y: 2 },
-    ],
-    "30": [
-      { x: 0, y: 0 },
-      { x: -1, y: 0 },
-      { x: -1, y: 1 },
-      { x: 0, y: -2 },
-      { x: -1, y: -2 },
-    ],
-  };
+): readonly { x: number; y: number }[] {
+  if (piece.type === "O") return O_KICK;
 
-  const iKicks = {
-    "01": [
-      { x: 0, y: 0 },
-      { x: -2, y: 0 },
-      { x: 1, y: 0 },
-      { x: -2, y: 1 },
-      { x: 1, y: -2 },
-    ],
-    "12": [
-      { x: 0, y: 0 },
-      { x: -1, y: 0 },
-      { x: 2, y: 0 },
-      { x: -1, y: -2 },
-      { x: 2, y: 1 },
-    ],
-    "23": [
-      { x: 0, y: 0 },
-      { x: 2, y: 0 },
-      { x: -1, y: 0 },
-      { x: 2, y: -1 },
-      { x: -1, y: 2 },
-    ],
-    "30": [
-      { x: 0, y: 0 },
-      { x: 1, y: 0 },
-      { x: -2, y: 0 },
-      { x: 1, y: 2 },
-      { x: -2, y: -1 },
-    ],
-  };
+  const kickKey = `${currentRotation}${(currentRotation + 1) % 4}`;
+  const kicks = piece.type === "I" ? I_KICKS : STANDARD_KICKS;
 
-  const nextRotation = (currentRotation + 1) % 4;
-  const kickKey =
-    `${currentRotation}${nextRotation}` as keyof typeof standardKicks;
-
-  if (piece.type === "I") {
-    return iKicks[kickKey] || iKicks["01"];
-  }
-
-  // O piece doesn't need wall kicks
-  if (piece.type === "O") {
-    return [{ x: 0, y: 0 }];
-  }
-
-  return standardKicks[kickKey] || standardKicks["01"];
+  return kicks[kickKey] ?? kicks["01"];
 }
+
+// Points map at module level for performance
+const LINE_POINTS: Record<number, number> = {
+  1: POINTS.SINGLE,
+  2: POINTS.DOUBLE,
+  3: POINTS.TRIPLE,
+  4: POINTS.TETRIS,
+};
 
 // Score calculation
 export function calculateScore(lines: number, level: number): number {
-  const basePoints = {
-    1: 100,
-    2: 300,
-    3: 500,
-    4: 800,
-  };
-
-  return (basePoints[lines as keyof typeof basePoints] || 0) * level;
+  return (LINE_POINTS[lines] ?? 0) * level;
 }
 
 // Level calculation
 export function calculateLevel(lines: number): number {
-  return Math.floor(lines / 10) + 1;
+  return Math.floor(lines / LINES_PER_LEVEL) + 1;
 }
 
 // Speed calculation
@@ -284,9 +273,4 @@ export function calculateSpeed(level: number): number {
   const minSpeed = 100; // Maximum speed (minimum delay)
   const calculatedSpeed = INITIAL_SPEED - (level - 1) * LEVEL_SPEED_MULTIPLIER;
   return Math.max(calculatedSpeed, minSpeed);
-}
-
-// Check for game over
-export function isGameOver(piece: Tetromino, board: Board): boolean {
-  return !isValidMove(piece, board);
 }

@@ -1,9 +1,10 @@
 "use client";
 // src/components/tetris/TetrisGame.tsx
-import React from "react";
+import React, { useCallback } from "react";
 import { useInterval } from "@/hooks/useInterval";
 import { useKeyboard } from "@/hooks/useKeyboard";
-import { useGameLogic } from "@/hooks/useGameLogic";
+import { useTetris } from "@/hooks/useTetris";
+import { useIsMobile } from "@/hooks/useIsMobile";
 
 import Board from "./Board";
 import Controls from "./Controls";
@@ -13,6 +14,7 @@ import NextPiece from "./NextPiece";
 import Score from "./Score";
 
 const TetrisGame: React.FC = () => {
+  const isMobile = useIsMobile();
   const {
     // State
     board,
@@ -36,30 +38,39 @@ const TetrisGame: React.FC = () => {
     holdPiece,
     resetGame,
     pauseGame,
-  } = useGameLogic();
+    tick,
+  } = useTetris();
 
-  // Keyboard controls
+  // Memoized keyboard handlers
+  const onMoveLeft = useCallback(() => movePiece(-1, 0), [movePiece]);
+  const onMoveRight = useCallback(() => movePiece(1, 0), [movePiece]);
+
+  // Keyboard controls - only enabled when game is active
+  const isGameActive = gameState === "PLAYING" || gameState === "PAUSED";
   useKeyboard({
-    onMoveLeft: () => movePiece(-1, 0),
-    onMoveRight: () => movePiece(1, 0),
-    onMoveDown: () => {
-      softDropStep();
-    },
+    onMoveLeft,
+    onMoveRight,
+    onMoveDown: softDropStep,
     onRotate: rotatePiece,
     onHardDrop: hardDrop,
     onHold: holdPiece,
     onPause: pauseGame,
     onReset: resetGame,
-    isEnabled: gameState !== "GAME_OVER",
+    isEnabled: isGameActive,
   });
 
-  // Game tick for piece falling
-  useInterval(
-    () => {
-      movePiece(0, 1);
+  // Memoized move handler for Controls
+  const handleMove = useCallback(
+    (direction: "left" | "right" | "down") => {
+      if (direction === "left") movePiece(-1, 0);
+      else if (direction === "right") movePiece(1, 0);
+      else softDropStep();
     },
-    gameState === "PLAYING" ? dropSpeed : null
+    [movePiece, softDropStep]
   );
+
+  // Game tick for piece falling
+  useInterval(tick, gameState === "PLAYING" ? dropSpeed : null);
 
   return (
     <div className="flex flex-col md:flex-row gap-8 items-center md:items-start">
@@ -95,26 +106,14 @@ const TetrisGame: React.FC = () => {
       <div className="flex flex-col gap-4">
         <NextPiece pieces={nextPieces} />
         <Controls
-          onMove={(direction) => {
-            switch (direction) {
-              case "left":
-                movePiece(-1, 0);
-                break;
-              case "right":
-                movePiece(1, 0);
-                break;
-              case "down":
-                softDropStep();
-                break;
-            }
-          }}
+          onMove={handleMove}
           onRotate={rotatePiece}
           onHardDrop={hardDrop}
           onPause={pauseGame}
           onReset={resetGame}
           isPaused={gameState === "PAUSED"}
           gameOver={gameState === "GAME_OVER"}
-          isMobile={typeof window !== "undefined" && window.innerWidth < 768}
+          isMobile={isMobile}
         />
       </div>
     </div>
