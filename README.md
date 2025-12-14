@@ -69,8 +69,10 @@ Touch controls appear automatically on mobile devices with on-screen directional
 | UI Library | [React](https://react.dev/)                   | 19.x    |
 | Language   | [TypeScript](https://www.typescriptlang.org/) | 5.x     |
 | Styling    | [Tailwind CSS](https://tailwindcss.com/)      | 4.x     |
-| Icons      | [Lucide React](https://lucide.dev/)           | 0.559.x |
+| Icons      | [Lucide React](https://lucide.dev/)           | 0.561.x |
 | Variants   | [CVA](https://cva.style/)                     | 0.7.x   |
+
+**Only 5 runtime dependencies** - Keeping the bundle lean and fast.
 
 ## 🚀 Quick Start
 
@@ -205,6 +207,8 @@ type TetrisAction =
 2. **Derived State** - Ghost piece calculated via `useMemo`, not stored
 3. **SSR Safety** - Deterministic initial state, random initialization deferred to client
 4. **Pre-computed Styles** - Cell classes computed at module level, not per render
+5. **DRY Reducer** - Shared `lockAndSpawnNext` helper eliminates code duplication
+6. **Minimal Dependencies** - Only 5 runtime dependencies for a lean bundle
 
 ## 🤝 Contributing
 
