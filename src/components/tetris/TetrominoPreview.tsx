@@ -11,27 +11,33 @@ interface TetrominoPreviewProps {
   className?: string;
 }
 
+// Variant config type
+interface VariantConfig {
+  cellSize: string;
+  containerClass: string;
+  opacity: number;
+  scale: string;
+}
+
+// Base config shared between hold and next-main
+const BASE_CONFIG: VariantConfig = {
+  cellSize: "w-4 h-4",
+  containerClass: "p-2 bg-gray-900 rounded border border-gray-700",
+  opacity: 1,
+  scale: "",
+};
+
 // Pre-computed variant styles
-const VARIANT_CONFIG = {
-  hold: {
-    cellSize: "w-4 h-4",
-    containerClass: "p-2 bg-gray-900 rounded border border-gray-700",
-    opacity: 1,
-    scale: "",
-  },
-  "next-main": {
-    cellSize: "w-4 h-4",
-    containerClass: "p-2 bg-gray-900 rounded border border-gray-700",
-    opacity: 1,
-    scale: "",
-  },
+const VARIANT_CONFIG: Record<PreviewVariant, VariantConfig> = {
+  hold: BASE_CONFIG,
+  "next-main": BASE_CONFIG,
   "next-secondary": {
     cellSize: "w-3 h-3",
     containerClass: "p-1.5 bg-gray-900 rounded border border-gray-700",
     opacity: 0.7,
     scale: "scale-90",
   },
-} as const;
+};
 
 // Pre-compute active cell classes for each tetromino type
 const ACTIVE_CELL_CLASSES = Object.fromEntries(
@@ -77,38 +83,35 @@ const TetrominoPreview: React.FC<TetrominoPreviewProps> = ({
     };
   }, [piece]);
 
-  const renderGrid = () => {
+  // Memoize grid cells to avoid recreation on each render
+  const gridCells = useMemo(() => {
     const shape = piece ? TETROMINO_SHAPES[piece] : null;
 
-    return (
-      <div className="grid grid-cols-4 gap-0.5">
-        {Array.from({ length: 16 }).map((_, index) => {
-          const row = Math.floor(index / 4);
-          const col = index % 4;
+    return Array.from({ length: 16 }).map((_, index) => {
+      const row = Math.floor(index / 4);
+      const col = index % 4;
 
-          const pieceRow = row - centerOffset.y;
-          const pieceCol = col - centerOffset.x;
-          const isActive = piece && shape?.[pieceRow]?.[pieceCol] === 1;
+      const pieceRow = row - centerOffset.y;
+      const pieceCol = col - centerOffset.x;
+      const isActive = piece && shape?.[pieceRow]?.[pieceCol] === 1;
 
-          return (
-            <div
-              key={index}
-              className={`${config.cellSize} border ${
-                isActive ? ACTIVE_CELL_CLASSES[piece] : EMPTY_CELL_CLASS
-              }`}
-            />
-          );
-        })}
-      </div>
-    );
-  };
+      return (
+        <div
+          key={index}
+          className={`${config.cellSize} border ${
+            isActive ? ACTIVE_CELL_CLASSES[piece] : EMPTY_CELL_CLASS
+          }`}
+        />
+      );
+    });
+  }, [piece, centerOffset, config.cellSize]);
 
   return (
     <div
       className={`${config.containerClass} ${config.scale} ${className}`}
       style={{ opacity: config.opacity }}
     >
-      {renderGrid()}
+      <div className="grid grid-cols-4 gap-0.5">{gridCells}</div>
     </div>
   );
 };

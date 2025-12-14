@@ -47,9 +47,7 @@ type TetrisAction =
   | { type: "HARD_DROP" }
   | { type: "SOFT_DROP" }
   | { type: "HOLD_PIECE" }
-  | { type: "LOCK_PIECE" }
   | { type: "TOGGLE_PAUSE" }
-  | { type: "GAME_OVER" }
   | { type: "TICK" };
 
 // ============================================================================
@@ -123,8 +121,59 @@ function tryRotate(piece: Tetromino, board: Board): Tetromino | null {
   return null;
 }
 
-function calculateGhostPosition(piece: Tetromino, board: Board): Tetromino {
-  return getGhostPiecePosition(piece, board);
+// ============================================================================
+// Lock & Spawn Helper (DRY - used by MOVE_PIECE/TICK and HARD_DROP)
+// ============================================================================
+
+interface LockAndSpawnResult {
+  board: Board;
+  currentPiece: Tetromino;
+  nextPieces: TetrominoType[];
+  bag: TetrominoType[];
+  score: number;
+  lines: number;
+  level: number;
+  dropSpeed: number;
+  highScore: number;
+  gameState: GameState;
+}
+
+function lockAndSpawnNext(
+  state: TetrisState,
+  pieceToLock: Tetromino,
+  bonusPoints: number = 0
+): LockAndSpawnResult {
+  const { newBoard, linesCleared } = lockPieceOnBoard(state.board, pieceToLock);
+  const newLines = state.lines + linesCleared;
+  const newLevel = calculateLevel(newLines);
+  const linePoints =
+    linesCleared > 0 ? calculateScore(linesCleared, newLevel) : 0;
+  const newScore = state.score + bonusPoints + linePoints;
+
+  const { piece: newPiece, nextPieces, newBag } = getNextPiece(state.bag);
+
+  // Check for game over
+  const isGameOver = !isValidMove(newPiece, newBoard);
+  const finalHighScore = isGameOver
+    ? Math.max(newScore, state.highScore)
+    : state.highScore;
+
+  if (isGameOver) {
+    saveHighScore(finalHighScore);
+  }
+
+  return {
+    board: newBoard,
+    currentPiece: newPiece,
+    nextPieces,
+    bag: newBag,
+    score: newScore,
+    lines: newLines,
+    level: newLevel,
+    dropSpeed: calculateSpeed(newLevel),
+    highScore: finalHighScore,
+    gameState: isGameOver ? "GAME_OVER" : state.gameState,
+  };
 }
 
 // ============================================================================
@@ -225,52 +274,10 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
         return { ...state, currentPiece: movedPiece };
       }
 
-      // If moving down failed, lock the piece
+      // If moving down failed, lock the piece and spawn next
       if (dy > 0) {
-        const { newBoard, linesCleared } = lockPieceOnBoard(
-          state.board,
-          state.currentPiece
-        );
-        const newLines = state.lines + linesCleared;
-        const newLevel = calculateLevel(newLines);
-        const linePoints =
-          linesCleared > 0 ? calculateScore(linesCleared, newLevel) : 0;
-        const newScore = state.score + linePoints;
-
-        const { piece: newPiece, nextPieces, newBag } = getNextPiece(state.bag);
-
-        // Check for game over
-        if (!isValidMove(newPiece, newBoard)) {
-          const finalHighScore = Math.max(newScore, state.highScore);
-          saveHighScore(finalHighScore);
-          return {
-            ...state,
-            board: newBoard,
-            currentPiece: newPiece,
-            nextPieces,
-            bag: newBag,
-            canHold: true,
-            score: newScore,
-            lines: newLines,
-            level: newLevel,
-            dropSpeed: calculateSpeed(newLevel),
-            highScore: finalHighScore,
-            gameState: "GAME_OVER",
-          };
-        }
-
-        return {
-          ...state,
-          board: newBoard,
-          currentPiece: newPiece,
-          nextPieces,
-          bag: newBag,
-          canHold: true,
-          score: newScore,
-          lines: newLines,
-          level: newLevel,
-          dropSpeed: calculateSpeed(newLevel),
-        };
+        const result = lockAndSpawnNext(state, state.currentPiece);
+        return { ...state, ...result, canHold: true };
       }
 
       return state;
@@ -310,51 +317,12 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
     case "HARD_DROP": {
       if (state.gameState !== "PLAYING" || !state.currentPiece) return state;
 
-      const ghost = calculateGhostPosition(state.currentPiece, state.board);
+      const ghost = getGhostPiecePosition(state.currentPiece, state.board);
       const dropDistance = ghost.position.y - state.currentPiece.position.y;
       const dropPoints = dropDistance * POINTS.HARD_DROP;
 
-      const { newBoard, linesCleared } = lockPieceOnBoard(state.board, ghost);
-      const newLines = state.lines + linesCleared;
-      const newLevel = calculateLevel(newLines);
-      const linePoints =
-        linesCleared > 0 ? calculateScore(linesCleared, newLevel) : 0;
-      const newScore = state.score + dropPoints + linePoints;
-
-      const { piece: newPiece, nextPieces, newBag } = getNextPiece(state.bag);
-
-      // Check for game over
-      if (!isValidMove(newPiece, newBoard)) {
-        const finalHighScore = Math.max(newScore, state.highScore);
-        saveHighScore(finalHighScore);
-        return {
-          ...state,
-          board: newBoard,
-          currentPiece: newPiece,
-          nextPieces,
-          bag: newBag,
-          canHold: true,
-          score: newScore,
-          lines: newLines,
-          level: newLevel,
-          dropSpeed: calculateSpeed(newLevel),
-          highScore: finalHighScore,
-          gameState: "GAME_OVER",
-        };
-      }
-
-      return {
-        ...state,
-        board: newBoard,
-        currentPiece: newPiece,
-        nextPieces,
-        bag: newBag,
-        canHold: true,
-        score: newScore,
-        lines: newLines,
-        level: newLevel,
-        dropSpeed: calculateSpeed(newLevel),
-      };
+      const result = lockAndSpawnNext(state, ghost, dropPoints);
+      return { ...state, ...result, canHold: true };
     }
 
     case "HOLD_PIECE": {
@@ -387,16 +355,6 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
           canHold: false,
         };
       }
-    }
-
-    case "GAME_OVER": {
-      const finalHighScore = Math.max(state.score, state.highScore);
-      saveHighScore(finalHighScore);
-      return {
-        ...state,
-        gameState: "GAME_OVER",
-        highScore: finalHighScore,
-      };
     }
 
     default:
