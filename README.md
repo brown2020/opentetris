@@ -4,7 +4,7 @@
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](https://www.gnu.org/licenses/agpl-3.0.en.html)
 
 A modern, performant, open-source implementation of the classic Tetris game built with Next.js 16, React 19, TypeScript, and Tailwind CSS v4. This project provides a clean, educational codebase for learning game development with modern web technologies.
 
@@ -69,7 +69,7 @@ Touch controls appear automatically on mobile devices with on-screen directional
 | UI Library | [React](https://react.dev/)                   | 19.x    |
 | Language   | [TypeScript](https://www.typescriptlang.org/) | 5.x     |
 | Styling    | [Tailwind CSS](https://tailwindcss.com/)      | 4.x     |
-| Icons      | [Lucide React](https://lucide.dev/)           | 0.561.x |
+| Icons      | [Lucide React](https://lucide.dev/)           | 0.562.x |
 | Variants   | [CVA](https://cva.style/)                     | 0.7.x   |
 
 **Only 5 runtime dependencies** - Keeping the bundle lean and fast.
@@ -242,7 +242,7 @@ Contributions are welcome! Please follow these steps:
 
 | Command         | Description                             |
 | --------------- | --------------------------------------- |
-| `npm run dev`   | Start development server with Turbopack |
+| `npm run dev`   | Start development server                |
 | `npm run build` | Create production build                 |
 | `npm start`     | Start production server                 |
 | `npm run lint`  | Run ESLint                              |
@@ -254,7 +254,7 @@ Contributions are welcome! Please follow these steps:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## 🙏 Acknowledgments
 
