@@ -1,40 +1,21 @@
 // src/hooks/useIsMobile.ts
-import { useState, useEffect, useRef } from "react";
+import { useSyncExternalStore } from "react";
 
 const MOBILE_BREAKPOINT = 768;
-const DEBOUNCE_MS = 150;
+
+function getIsMobile(): boolean {
+  return window.innerWidth < MOBILE_BREAKPOINT;
+}
+
+function getServerSnapshot(): boolean {
+  return false;
+}
+
+function subscribe(callback: () => void): () => void {
+  window.addEventListener("resize", callback);
+  return () => window.removeEventListener("resize", callback);
+}
 
 export function useIsMobile(): boolean {
-  // Initialize with actual value to avoid hydration mismatch
-  const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return window.innerWidth < MOBILE_BREAKPOINT;
-  });
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    const checkMobile = () => {
-      // Clear any pending debounce
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      // Debounce resize events
-      timeoutRef.current = setTimeout(() => {
-        setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-      }, DEBOUNCE_MS);
-    };
-
-    // Re-check on mount in case SSR value differs (immediate, no debounce)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT);
-
-    window.addEventListener("resize", checkMobile);
-    return () => {
-      window.removeEventListener("resize", checkMobile);
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-    };
-  }, []);
-
-  return isMobile;
+  return useSyncExternalStore(subscribe, getIsMobile, getServerSnapshot);
 }
