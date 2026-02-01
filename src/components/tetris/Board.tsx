@@ -1,14 +1,17 @@
 // src/components/tetris/Board.tsx
 import React, { useMemo, useCallback } from "react";
 import Cell from "./Cell";
-import { BOARD_WIDTH } from "@/lib/constants";
-import { Board as BoardType, Tetromino } from "@/types";
+import { BOARD_WIDTH, LINE_CLEAR_ANIMATION } from "@/lib/constants";
+import { Board as BoardType, Tetromino, LineClearAnimation, ColorTheme } from "@/types";
 import { getRotatedShape } from "@/lib/utils";
 
 interface BoardProps {
   board: BoardType;
   currentPiece: Tetromino | null;
   ghostPiece: Tetromino | null;
+  lineClearAnimation?: LineClearAnimation | null;
+  level?: number;
+  colorTheme?: ColorTheme;
   className?: string;
 }
 
@@ -31,6 +34,9 @@ const Board: React.FC<BoardProps> = ({
   board,
   currentPiece,
   ghostPiece,
+  lineClearAnimation,
+  level = 0,
+  colorTheme = "modern",
   className = "",
 }) => {
   const currentCells = useMemo(
@@ -38,6 +44,17 @@ const Board: React.FC<BoardProps> = ({
     [currentPiece]
   );
   const ghostCells = useMemo(() => getPieceCells(ghostPiece), [ghostPiece]);
+
+  // Determine which rows are clearing and if they should flash
+  const clearingRows = useMemo(() => {
+    if (!lineClearAnimation) return new Set<number>();
+    return new Set(lineClearAnimation.rows);
+  }, [lineClearAnimation]);
+
+  // Flash state: alternate based on frame number (0,2,4,6 = on; 1,3,5,7 = off)
+  const isFlashOn = lineClearAnimation
+    ? lineClearAnimation.frame % 2 === 0
+    : false;
 
   const getCellContent = useCallback(
     (row: number, col: number) => {
@@ -68,12 +85,17 @@ const Board: React.FC<BoardProps> = ({
       {board.map((row, rowIndex) =>
         row.map((_, colIndex) => {
           const cellContent = getCellContent(rowIndex, colIndex);
+          const isClearing = clearingRows.has(rowIndex);
           return (
             <Cell
               key={`${rowIndex}-${colIndex}`}
               type={cellContent.type}
               isActive={cellContent.isActive}
               isGhost={cellContent.isGhost}
+              isClearing={isClearing}
+              isFlashOn={isClearing && isFlashOn}
+              level={level}
+              colorTheme={colorTheme}
             />
           );
         })
