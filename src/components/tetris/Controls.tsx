@@ -21,6 +21,7 @@ interface ControlsProps {
   isPaused: boolean;
   gameOver: boolean;
   isMobile?: boolean;
+  isClassicMode?: boolean;
 }
 
 const Controls: React.FC<ControlsProps> = ({
@@ -32,6 +33,7 @@ const Controls: React.FC<ControlsProps> = ({
   isPaused,
   gameOver,
   isMobile = false,
+  isClassicMode = false,
 }) => {
   return (
     <div className="flex flex-col gap-4">
@@ -121,9 +123,10 @@ const Controls: React.FC<ControlsProps> = ({
         <h3 className="font-semibold mb-2">Controls:</h3>
         <ul className="space-y-1">
           <li>←/→ : Move left/right</li>
-          <li>↓ : Move down</li>
+          <li>↓ : Soft drop</li>
           <li>↑ : Rotate</li>
-          <li>Space : Hard drop</li>
+          {!isClassicMode && <li>Space : Hard drop</li>}
+          {!isClassicMode && <li>C : Hold piece</li>}
           <li>P : Pause</li>
           <li>R : Reset</li>
         </ul>

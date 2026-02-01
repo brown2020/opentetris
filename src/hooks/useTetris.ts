@@ -1,20 +1,33 @@
 // src/hooks/useTetris.ts
 import { useReducer, useCallback, useMemo, useEffect } from "react";
-import { Board, Tetromino, TetrominoType, GameState } from "@/types";
+import {
+  Board,
+  Tetromino,
+  TetrominoType,
+  GameState,
+  GameSettings,
+  PieceStatistics,
+  LineClearAnimation,
+  DEFAULT_MODERN_SETTINGS,
+  INITIAL_STATISTICS,
+} from "@/types";
 import {
   createEmptyBoard,
   generateNewPiece,
   generateBag,
+  generateNESRandom,
   isValidMove,
   getGhostPiecePosition,
-  getWallKicks,
   addPieceToBoard,
-  clearLines,
+  findCompletedLines,
+  clearSpecificLines,
   calculateScore,
   calculateLevel,
   calculateSpeed,
+  getDropPoints,
+  tryRotate,
 } from "@/lib/utils";
-import { INITIAL_SPEED, PREVIEW_PIECES, POINTS } from "@/lib/constants";
+import { LINE_CLEAR_ANIMATION } from "@/lib/constants";
 
 // ============================================================================
 // Types
@@ -29,32 +42,41 @@ interface TetrisState {
   heldPiece: TetrominoType | null;
   canHold: boolean;
   bag: TetrominoType[];
+  lastPieceType: TetrominoType | null; // For NES random
   // Game stats
   score: number;
   level: number;
   lines: number;
   highScore: number;
+  statistics: PieceStatistics;
   // Game status
   gameState: GameState;
   dropSpeed: number;
+  // Line clear animation
+  lineClearAnimation: LineClearAnimation | null;
+  // Settings
+  settings: GameSettings;
 }
 
 type TetrisAction =
-  | { type: "INIT"; highScore: number }
+  | { type: "INIT"; highScore: number; settings?: GameSettings }
   | { type: "RESET_GAME" }
+  | { type: "UPDATE_SETTINGS"; settings: Partial<GameSettings> }
   | { type: "MOVE_PIECE"; dx: number; dy: number }
   | { type: "ROTATE_PIECE" }
   | { type: "HARD_DROP" }
   | { type: "SOFT_DROP" }
   | { type: "HOLD_PIECE" }
   | { type: "TOGGLE_PAUSE" }
-  | { type: "TICK" };
+  | { type: "TICK" }
+  | { type: "LINE_CLEAR_TICK" };
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
 const HIGH_SCORE_KEY = "tetris-highscore";
+const SETTINGS_KEY = "tetris-settings";
 
 function getStoredHighScore(): number {
   if (typeof window === "undefined") return 0;
@@ -68,74 +90,90 @@ function saveHighScore(score: number): void {
   }
 }
 
-function ensureBag(bag: TetrominoType[]): TetrominoType[] {
+function getStoredSettings(): GameSettings | null {
+  if (typeof window === "undefined") return null;
+  const stored = localStorage.getItem(SETTINGS_KEY);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored) as GameSettings;
+  } catch {
+    return null;
+  }
+}
+
+function saveSettings(settings: GameSettings): void {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+}
+
+function ensureBag(bag: TetrominoType[], previewCount: number): TetrominoType[] {
   let newBag = [...bag];
-  if (newBag.length < PREVIEW_PIECES + 1) {
+  if (newBag.length < previewCount + 1) {
     newBag.push(...generateBag());
   }
   return newBag;
 }
 
-function getNextPiece(bag: TetrominoType[]): {
+function getNextPieceModern(
+  bag: TetrominoType[],
+  previewCount: number
+): {
   piece: Tetromino;
   nextPieces: TetrominoType[];
   newBag: TetrominoType[];
 } {
-  let newBag = ensureBag(bag);
+  let newBag = ensureBag(bag, previewCount);
   const nextType = newBag.shift() as TetrominoType;
-  newBag = ensureBag(newBag);
+  newBag = ensureBag(newBag, previewCount);
   return {
     piece: generateNewPiece(nextType),
-    nextPieces: newBag.slice(0, PREVIEW_PIECES),
+    nextPieces: newBag.slice(0, previewCount),
     newBag,
   };
 }
 
-function lockPieceOnBoard(
-  board: Board,
-  piece: Tetromino
-): { newBoard: Board; linesCleared: number } {
-  const boardWithPiece = addPieceToBoard(board, piece);
-  return clearLines(boardWithPiece);
+function getNextPieceNES(
+  lastPieceType: TetrominoType | null
+): {
+  piece: Tetromino;
+  pieceType: TetrominoType;
+} {
+  const pieceType = generateNESRandom(lastPieceType);
+  return {
+    piece: generateNewPiece(pieceType),
+    pieceType,
+  };
 }
 
-function tryRotate(piece: Tetromino, board: Board): Tetromino | null {
-  const newRotation = (piece.rotation + 1) % 4;
-  const rotatedPiece = { ...piece, rotation: newRotation };
-  const kicks = getWallKicks(piece, piece.rotation);
-
-  for (const kick of kicks) {
-    const kickedPiece = {
-      ...rotatedPiece,
-      position: {
-        x: rotatedPiece.position.x + kick.x,
-        y: rotatedPiece.position.y + kick.y,
-      },
-    };
-
-    if (isValidMove(kickedPiece, board)) {
-      return kickedPiece;
-    }
-  }
-
-  return null;
+function updateStatistics(
+  stats: PieceStatistics,
+  pieceType: TetrominoType
+): PieceStatistics {
+  return {
+    ...stats,
+    [pieceType]: stats[pieceType] + 1,
+  };
 }
 
 // ============================================================================
-// Lock & Spawn Helper (DRY - used by MOVE_PIECE/TICK and HARD_DROP)
+// Lock & Spawn Helper
 // ============================================================================
 
 interface LockAndSpawnResult {
   board: Board;
-  currentPiece: Tetromino;
+  currentPiece: Tetromino | null;
   nextPieces: TetrominoType[];
   bag: TetrominoType[];
+  lastPieceType: TetrominoType | null;
   score: number;
   lines: number;
   level: number;
   dropSpeed: number;
   highScore: number;
   gameState: GameState;
+  lineClearAnimation: LineClearAnimation | null;
+  statistics: PieceStatistics;
 }
 
 function lockAndSpawnNext(
@@ -143,14 +181,67 @@ function lockAndSpawnNext(
   pieceToLock: Tetromino,
   bonusPoints: number = 0
 ): LockAndSpawnResult {
-  const { newBoard, linesCleared } = lockPieceOnBoard(state.board, pieceToLock);
+  const boardWithPiece = addPieceToBoard(state.board, pieceToLock);
+  const clearedRows = findCompletedLines(boardWithPiece);
+  const linesCleared = clearedRows.length;
+
+  // If lines are cleared and we're in classic mode, start animation
+  if (linesCleared > 0 && state.settings.mode === "classic") {
+    return {
+      board: boardWithPiece,
+      currentPiece: null,
+      nextPieces: state.nextPieces,
+      bag: state.bag,
+      lastPieceType: pieceToLock.type,
+      score: state.score + bonusPoints,
+      lines: state.lines,
+      level: state.level,
+      dropSpeed: state.dropSpeed,
+      highScore: state.highScore,
+      gameState: "LINE_CLEAR",
+      lineClearAnimation: {
+        rows: clearedRows,
+        frame: 0,
+        isComplete: false,
+      },
+      statistics: state.statistics,
+    };
+  }
+
+  // Immediately clear lines (modern mode or no lines to clear)
+  const newBoard = linesCleared > 0
+    ? clearSpecificLines(boardWithPiece, clearedRows)
+    : boardWithPiece;
+
   const newLines = state.lines + linesCleared;
-  const newLevel = calculateLevel(newLines);
-  const linePoints =
-    linesCleared > 0 ? calculateScore(linesCleared, newLevel) : 0;
+  const newLevel = calculateLevel(newLines, state.settings.startingLevel);
+  const linePoints = linesCleared > 0
+    ? calculateScore(linesCleared, newLevel, state.settings.scoringSystem)
+    : 0;
   const newScore = state.score + bonusPoints + linePoints;
 
-  const { piece: newPiece, nextPieces, newBag } = getNextPiece(state.bag);
+  // Get next piece based on randomizer type
+  let newPiece: Tetromino;
+  let newNextPieces: TetrominoType[];
+  let newBag: TetrominoType[];
+  let newLastPieceType: TetrominoType | null;
+
+  if (state.settings.randomizer === "nes") {
+    const result = getNextPieceNES(pieceToLock.type);
+    newPiece = result.piece;
+    newNextPieces = [result.pieceType]; // NES only shows 1 next piece
+    newBag = state.bag;
+    newLastPieceType = result.pieceType;
+  } else {
+    const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
+    newPiece = result.piece;
+    newNextPieces = result.nextPieces;
+    newBag = result.newBag;
+    newLastPieceType = newPiece.type;
+  }
+
+  // Update statistics
+  const newStatistics = updateStatistics(state.statistics, newPiece.type);
 
   // Check for game over
   const isGameOver = !isValidMove(newPiece, newBoard);
@@ -165,14 +256,17 @@ function lockAndSpawnNext(
   return {
     board: newBoard,
     currentPiece: newPiece,
-    nextPieces,
+    nextPieces: newNextPieces,
     bag: newBag,
+    lastPieceType: newLastPieceType,
     score: newScore,
     lines: newLines,
     level: newLevel,
-    dropSpeed: calculateSpeed(newLevel),
+    dropSpeed: calculateSpeed(newLevel, state.settings.scoringSystem),
     highScore: finalHighScore,
     gameState: isGameOver ? "GAME_OVER" : state.gameState,
+    lineClearAnimation: null,
+    statistics: newStatistics,
   };
 }
 
@@ -180,7 +274,6 @@ function lockAndSpawnNext(
 // Initial State
 // ============================================================================
 
-// Deterministic initial state for SSR - no random values
 function createInitialState(): TetrisState {
   return {
     board: createEmptyBoard(),
@@ -189,19 +282,43 @@ function createInitialState(): TetrisState {
     heldPiece: null,
     canHold: true,
     bag: [],
+    lastPieceType: null,
     score: 0,
     level: 1,
     lines: 0,
-    highScore: 0, // Will be loaded from localStorage on client
-    gameState: "INITIAL", // Not playing until client initializes
-    dropSpeed: INITIAL_SPEED,
+    highScore: 0,
+    statistics: { ...INITIAL_STATISTICS },
+    gameState: "INITIAL",
+    dropSpeed: 1000,
+    lineClearAnimation: null,
+    settings: DEFAULT_MODERN_SETTINGS,
   };
 }
 
-// Initialize game with random pieces - only called on client
-function initializeGame(highScore: number): TetrisState {
-  const initialBag = ensureBag([]);
-  const { piece, nextPieces, newBag } = getNextPiece(initialBag);
+function initializeGame(highScore: number, settings: GameSettings): TetrisState {
+  let piece: Tetromino;
+  let nextPieces: TetrominoType[];
+  let bag: TetrominoType[];
+  let lastPieceType: TetrominoType | null;
+
+  if (settings.randomizer === "nes") {
+    const result = getNextPieceNES(null);
+    piece = result.piece;
+    nextPieces = [generateNESRandom(result.pieceType)];
+    bag = [];
+    lastPieceType = result.pieceType;
+  } else {
+    const initialBag = ensureBag([], settings.nextPieceCount);
+    const result = getNextPieceModern(initialBag, settings.nextPieceCount);
+    piece = result.piece;
+    nextPieces = result.nextPieces;
+    bag = result.newBag;
+    lastPieceType = piece.type;
+  }
+
+  const initialStats = updateStatistics({ ...INITIAL_STATISTICS }, piece.type);
+  const startingLevel = settings.startingLevel;
+  const dropSpeed = calculateSpeed(startingLevel, settings.scoringSystem);
 
   return {
     board: createEmptyBoard(),
@@ -209,13 +326,17 @@ function initializeGame(highScore: number): TetrisState {
     nextPieces,
     heldPiece: null,
     canHold: true,
-    bag: newBag,
+    bag,
+    lastPieceType,
     score: 0,
-    level: 1,
+    level: startingLevel,
     lines: 0,
     highScore,
+    statistics: initialStats,
     gameState: "PLAYING",
-    dropSpeed: INITIAL_SPEED,
+    dropSpeed,
+    lineClearAnimation: null,
+    settings,
   };
 }
 
@@ -226,33 +347,107 @@ function initializeGame(highScore: number): TetrisState {
 function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
   switch (action.type) {
     case "INIT": {
-      return initializeGame(action.highScore);
+      const settings = action.settings || getStoredSettings() || DEFAULT_MODERN_SETTINGS;
+      return initializeGame(action.highScore, settings);
     }
 
     case "RESET_GAME": {
-      const initialBag = ensureBag([]);
-      const { piece, nextPieces, newBag } = getNextPiece(initialBag);
-      return {
-        ...state,
-        board: createEmptyBoard(),
-        currentPiece: piece,
-        nextPieces,
-        heldPiece: null,
-        canHold: true,
-        bag: newBag,
-        score: 0,
-        level: 1,
-        lines: 0,
-        gameState: "PLAYING",
-        dropSpeed: INITIAL_SPEED,
-      };
+      return initializeGame(state.highScore, state.settings);
+    }
+
+    case "UPDATE_SETTINGS": {
+      const newSettings = { ...state.settings, ...action.settings };
+      saveSettings(newSettings);
+
+      // If game hasn't started or is over, reinitialize with new settings
+      if (state.gameState === "INITIAL" || state.gameState === "GAME_OVER") {
+        return initializeGame(state.highScore, newSettings);
+      }
+
+      return { ...state, settings: newSettings };
     }
 
     case "TOGGLE_PAUSE": {
-      if (state.gameState === "GAME_OVER") return state;
+      if (state.gameState === "GAME_OVER" || state.gameState === "LINE_CLEAR") {
+        return state;
+      }
       return {
         ...state,
         gameState: state.gameState === "PLAYING" ? "PAUSED" : "PLAYING",
+      };
+    }
+
+    case "LINE_CLEAR_TICK": {
+      if (!state.lineClearAnimation || state.gameState !== "LINE_CLEAR") {
+        return state;
+      }
+
+      const newFrame = state.lineClearAnimation.frame + 1;
+
+      if (newFrame >= LINE_CLEAR_ANIMATION.totalFrames) {
+        // Animation complete - now clear the lines and spawn next piece
+        const newBoard = clearSpecificLines(state.board, state.lineClearAnimation.rows);
+        const linesCleared = state.lineClearAnimation.rows.length;
+        const newLines = state.lines + linesCleared;
+        const newLevel = calculateLevel(newLines, state.settings.startingLevel);
+        const linePoints = calculateScore(linesCleared, newLevel, state.settings.scoringSystem);
+        const newScore = state.score + linePoints;
+
+        // Get next piece
+        let newPiece: Tetromino;
+        let newNextPieces: TetrominoType[];
+        let newBag: TetrominoType[];
+        let newLastPieceType: TetrominoType | null;
+
+        if (state.settings.randomizer === "nes") {
+          const result = getNextPieceNES(state.lastPieceType);
+          newPiece = result.piece;
+          newNextPieces = [generateNESRandom(result.pieceType)];
+          newBag = state.bag;
+          newLastPieceType = result.pieceType;
+        } else {
+          const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
+          newPiece = result.piece;
+          newNextPieces = result.nextPieces;
+          newBag = result.newBag;
+          newLastPieceType = newPiece.type;
+        }
+
+        const newStatistics = updateStatistics(state.statistics, newPiece.type);
+        const isGameOver = !isValidMove(newPiece, newBoard);
+        const finalHighScore = isGameOver
+          ? Math.max(newScore, state.highScore)
+          : state.highScore;
+
+        if (isGameOver) {
+          saveHighScore(finalHighScore);
+        }
+
+        return {
+          ...state,
+          board: newBoard,
+          currentPiece: newPiece,
+          nextPieces: newNextPieces,
+          bag: newBag,
+          lastPieceType: newLastPieceType,
+          score: newScore,
+          lines: newLines,
+          level: newLevel,
+          dropSpeed: calculateSpeed(newLevel, state.settings.scoringSystem),
+          highScore: finalHighScore,
+          gameState: isGameOver ? "GAME_OVER" : "PLAYING",
+          lineClearAnimation: null,
+          statistics: newStatistics,
+          canHold: true,
+        };
+      }
+
+      return {
+        ...state,
+        lineClearAnimation: {
+          ...state.lineClearAnimation,
+          frame: newFrame,
+        },
       };
     }
 
@@ -286,7 +481,11 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
     case "ROTATE_PIECE": {
       if (state.gameState !== "PLAYING" || !state.currentPiece) return state;
 
-      const rotatedPiece = tryRotate(state.currentPiece, state.board);
+      const rotatedPiece = tryRotate(
+        state.currentPiece,
+        state.board,
+        state.settings.rotationSystem
+      );
       if (rotatedPiece) {
         return { ...state, currentPiece: rotatedPiece };
       }
@@ -304,10 +503,11 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
       const movedPiece = { ...state.currentPiece, position: newPosition };
 
       if (isValidMove(movedPiece, state.board)) {
+        const dropPoints = getDropPoints("soft", 1, state.settings.scoringSystem);
         return {
           ...state,
           currentPiece: movedPiece,
-          score: state.score + POINTS.SOFT_DROP,
+          score: state.score + dropPoints,
         };
       }
 
@@ -317,9 +517,23 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
     case "HARD_DROP": {
       if (state.gameState !== "PLAYING" || !state.currentPiece) return state;
 
+      // In classic/NES mode, hard drop just does a soft drop (no instant drop)
+      if (state.settings.mode === "classic") {
+        const newPosition = {
+          x: state.currentPiece.position.x,
+          y: state.currentPiece.position.y + 1,
+        };
+        const movedPiece = { ...state.currentPiece, position: newPosition };
+
+        if (isValidMove(movedPiece, state.board)) {
+          return { ...state, currentPiece: movedPiece };
+        }
+        return state;
+      }
+
       const ghost = getGhostPiecePosition(state.currentPiece, state.board);
       const dropDistance = ghost.position.y - state.currentPiece.position.y;
-      const dropPoints = dropDistance * POINTS.HARD_DROP;
+      const dropPoints = getDropPoints("hard", dropDistance, state.settings.scoringSystem);
 
       const result = lockAndSpawnNext(state, ghost, dropPoints);
       return { ...state, ...result, canHold: true };
@@ -329,7 +543,8 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
       if (
         state.gameState !== "PLAYING" ||
         !state.currentPiece ||
-        !state.canHold
+        !state.canHold ||
+        !state.settings.holdPiece
       ) {
         return state;
       }
@@ -345,14 +560,30 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
           canHold: false,
         };
       } else {
-        const { piece: newPiece, nextPieces, newBag } = getNextPiece(state.bag);
+        let newPiece: Tetromino;
+        let newNextPieces: TetrominoType[];
+        let newBag: TetrominoType[];
+
+        if (state.settings.randomizer === "nes") {
+          const result = getNextPieceNES(pieceToHold);
+          newPiece = result.piece;
+          newNextPieces = [generateNESRandom(result.pieceType)];
+          newBag = state.bag;
+        } else {
+          const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
+          newPiece = result.piece;
+          newNextPieces = result.nextPieces;
+          newBag = result.newBag;
+        }
+
         return {
           ...state,
           currentPiece: newPiece,
-          nextPieces,
+          nextPieces: newNextPieces,
           bag: newBag,
           heldPiece: pieceToHold,
           canHold: false,
+          statistics: updateStatistics(state.statistics, newPiece.type),
         };
       }
     }
@@ -369,19 +600,21 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
 export function useTetris() {
   const [state, dispatch] = useReducer(tetrisReducer, null, createInitialState);
 
-  // Initialize game on client mount (avoids hydration mismatch from Math.random)
+  // Initialize game on client mount
   useEffect(() => {
-    dispatch({ type: "INIT", highScore: getStoredHighScore() });
+    const storedSettings = getStoredSettings();
+    dispatch({
+      type: "INIT",
+      highScore: getStoredHighScore(),
+      settings: storedSettings || undefined,
+    });
   }, []);
 
-  // Derive ghost piece from current piece (no extra state/render)
-  const ghostPiece = useMemo(
-    () =>
-      state.currentPiece
-        ? getGhostPiecePosition(state.currentPiece, state.board)
-        : null,
-    [state.currentPiece, state.board]
-  );
+  // Derive ghost piece from current piece (only if ghost is enabled)
+  const ghostPiece = useMemo(() => {
+    if (!state.currentPiece || !state.settings.ghostPiece) return null;
+    return getGhostPiecePosition(state.currentPiece, state.board);
+  }, [state.currentPiece, state.board, state.settings.ghostPiece]);
 
   // Stable action creators
   const movePiece = useCallback((dx: number, dy: number) => {
@@ -416,6 +649,14 @@ export function useTetris() {
     dispatch({ type: "TICK" });
   }, []);
 
+  const lineClearTick = useCallback(() => {
+    dispatch({ type: "LINE_CLEAR_TICK" });
+  }, []);
+
+  const updateSettings = useCallback((settings: Partial<GameSettings>) => {
+    dispatch({ type: "UPDATE_SETTINGS", settings });
+  }, []);
+
   return {
     // State
     board: state.board,
@@ -423,13 +664,16 @@ export function useTetris() {
     ghostPiece,
     nextPieces: state.nextPieces,
     heldPiece: state.heldPiece,
-    canHold: state.canHold,
+    canHold: state.canHold && state.settings.holdPiece,
     score: state.score,
     level: state.level,
     lines: state.lines,
     highScore: state.highScore,
     gameState: state.gameState,
     dropSpeed: state.dropSpeed,
+    settings: state.settings,
+    statistics: state.statistics,
+    lineClearAnimation: state.lineClearAnimation,
 
     // Actions
     movePiece,
@@ -440,5 +684,7 @@ export function useTetris() {
     resetGame,
     pauseGame,
     tick,
+    lineClearTick,
+    updateSettings,
   };
 }
