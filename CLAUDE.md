@@ -52,9 +52,11 @@ src/
 
 - Use functional components with hooks exclusively
 - Prefer `useReducer` for complex state over multiple `useState` calls
+- Prefer `useSyncExternalStore` for reading browser/external state (see `useIsMobile.ts`)
 - Add TypeScript types for all props, state, and function parameters
 - Follow existing patterns in the codebase (strict TypeScript mode)
 - Test changes on both desktop and mobile (touch controls)
+- ESLint 9 flat config in `eslint.config.mjs` (uses eslint-config-next)
 
 ## Game Logic Reference
 
