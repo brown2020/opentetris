@@ -108,7 +108,7 @@ function saveSettings(settings: GameSettings): void {
 }
 
 function ensureBag(bag: TetrominoType[], previewCount: number): TetrominoType[] {
-  let newBag = [...bag];
+  const newBag = [...bag];
   if (newBag.length < previewCount + 1) {
     newBag.push(...generateBag());
   }

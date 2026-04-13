@@ -200,23 +200,6 @@ export function clearSpecificLines(board: Board, rowsToClear: number[]): Board {
   return newBoard;
 }
 
-// Clear completed lines and return new board and number of lines cleared
-export function clearLines(board: Board): {
-  newBoard: Board;
-  linesCleared: number;
-  clearedRows: number[];
-} {
-  const clearedRows = findCompletedLines(board);
-  const linesCleared = clearedRows.length;
-
-  if (linesCleared === 0) {
-    return { newBoard: board, linesCleared: 0, clearedRows: [] };
-  }
-
-  const newBoard = clearSpecificLines(board, clearedRows);
-  return { newBoard, linesCleared, clearedRows };
-}
-
 // ============================================================================
 // Ghost Piece
 // ============================================================================
