@@ -1,7 +1,7 @@
 // src/components/tetris/Board.tsx
 import React, { useMemo, useCallback } from "react";
 import Cell from "./Cell";
-import { BOARD_WIDTH, LINE_CLEAR_ANIMATION } from "@/lib/constants";
+import { BOARD_WIDTH } from "@/lib/constants";
 import { Board as BoardType, Tetromino, LineClearAnimation, ColorTheme } from "@/types";
 import { getRotatedShape } from "@/lib/utils";
 

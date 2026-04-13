@@ -9,8 +9,6 @@ export const BOARD_HEIGHT = 20;
 export const INITIAL_SPEED = 1000; // Base speed in milliseconds
 export const LEVEL_SPEED_MULTIPLIER = 50; // Speed increase per level
 export const LINES_PER_LEVEL = 10;
-export const PREVIEW_PIECES = 3; // Number of next pieces to show (modern mode)
-
 // All tetromino types
 export const TETROMINO_TYPES: TetrominoType[] = [
   "I",
@@ -45,9 +43,6 @@ export const NES_POINTS = {
   SOFT_DROP: 0, // NES had no soft drop points
   HARD_DROP: 0, // NES had no hard drop
 } as const;
-
-// Default points (for backwards compatibility)
-export const POINTS = MODERN_POINTS;
 
 // ============================================================================
 // NES Gravity / Speed Table
