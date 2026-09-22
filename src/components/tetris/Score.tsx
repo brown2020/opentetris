@@ -18,7 +18,7 @@ const Score: React.FC<ScoreProps> = ({
   className = "",
 }) => {
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div role="status" aria-live="polite" className={`space-y-4 ${className}`}>
       <div className="flex flex-col gap-2">
         {highScore !== undefined && (
           <div className="flex items-center justify-between text-amber-500">

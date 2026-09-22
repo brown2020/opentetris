@@ -1,4 +1,3 @@
-// src/components/tetris/SettingsPanel.tsx
 import React, { useState } from "react";
 import { Settings, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -37,24 +36,33 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between"
         disabled={disabled}
+        aria-expanded={isOpen}
+        aria-controls="tetris-settings-panel"
       >
         <span className="flex items-center gap-2">
-          <Settings className="w-4 h-4" />
+          <Settings className="w-4 h-4" aria-hidden="true" />
           Game Mode: {settings.mode === "classic" ? "Classic (NES)" : "Modern"}
         </span>
-        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        {isOpen ? (
+          <ChevronUp className="w-4 h-4" aria-hidden="true" />
+        ) : (
+          <ChevronDown className="w-4 h-4" aria-hidden="true" />
+        )}
       </Button>
 
       {isOpen && !disabled && (
-        <div className="mt-2 p-4 bg-gray-800 rounded-md space-y-4">
-          {/* Mode Selection */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">Game Mode</label>
-            <div className="flex gap-2">
+        <div
+          id="tetris-settings-panel"
+          className="mt-2 p-4 bg-gray-800 rounded-md space-y-4"
+        >
+          <fieldset>
+            <legend className="block text-sm text-gray-400 mb-2">Game Mode</legend>
+            <div className="flex gap-2" role="group" aria-label="Game mode">
               <Button
                 variant={settings.mode === "classic" ? "default" : "secondary"}
                 onClick={() => handleModeChange("classic")}
                 className="flex-1"
+                aria-pressed={settings.mode === "classic"}
               >
                 Classic (NES)
               </Button>
@@ -62,18 +70,18 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                 variant={settings.mode === "modern" ? "default" : "secondary"}
                 onClick={() => handleModeChange("modern")}
                 className="flex-1"
+                aria-pressed={settings.mode === "modern"}
               >
                 Modern
               </Button>
             </div>
-          </div>
+          </fieldset>
 
-          {/* Starting Level */}
-          <div>
-            <label className="block text-sm text-gray-400 mb-2">
+          <fieldset>
+            <legend className="block text-sm text-gray-400 mb-2">
               Starting Level: {settings.startingLevel}
-            </label>
-            <div className="flex gap-1 flex-wrap">
+            </legend>
+            <div className="flex gap-1 flex-wrap" role="group" aria-label="Starting level">
               {(settings.mode === "classic"
                 ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
                 : [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
@@ -83,14 +91,15 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
                   variant={settings.startingLevel === level ? "default" : "ghost"}
                   onClick={() => handleStartingLevelChange(level)}
                   className="w-8 h-8 p-0"
+                  aria-pressed={settings.startingLevel === level}
+                  aria-label={`Starting level ${level}`}
                 >
                   {level}
                 </Button>
               ))}
             </div>
-          </div>
+          </fieldset>
 
-          {/* Mode Description */}
           <div className="text-xs text-gray-500 space-y-1">
             {settings.mode === "classic" ? (
               <>
@@ -122,7 +131,7 @@ const SettingsPanel: React.FC<SettingsPanelProps> = ({
       )}
 
       {disabled && (
-        <p className="text-xs text-gray-500 text-center mt-1">
+        <p className="text-xs text-gray-400 text-center mt-1">
           Pause or end game to change settings
         </p>
       )}

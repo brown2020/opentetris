@@ -1,0 +1,2 @@
+static_js_bytes_sum_kb <= 900
+critical_path: start_reset_game

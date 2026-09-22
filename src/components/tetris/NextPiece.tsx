@@ -1,4 +1,3 @@
-// src/components/tetris/NextPiece.tsx
 import React from "react";
 import { TetrominoType, ColorTheme } from "@/types";
 import TetrominoPreview from "./TetrominoPreview";
@@ -18,20 +17,28 @@ const NextPiece: React.FC<NextPieceProps> = ({
   colorTheme = "modern",
   className = "",
 }) => {
+  const preview = pieces.slice(0, maxPieces);
+  const seen: Record<string, number> = {};
+
   return (
     <div className={className}>
       <h2 className="mb-2 text-sm font-semibold text-gray-300">Next</h2>
-      <div className="flex flex-col gap-2">
-        {pieces.slice(0, maxPieces).map((piece, index) => (
-          <TetrominoPreview
-            key={index}
-            piece={piece}
-            variant={index === 0 ? "next-main" : "next-secondary"}
-            level={level}
-            colorTheme={colorTheme}
-          />
-        ))}
-      </div>
+      <ul className="flex flex-col gap-2 list-none p-0 m-0" aria-label="Next pieces">
+        {preview.map((piece, slot) => {
+          const occurrence = (seen[piece] ?? 0) + 1;
+          seen[piece] = occurrence;
+          return (
+            <li key={`${piece}-${occurrence}`}>
+              <TetrominoPreview
+                piece={piece}
+                variant={slot === 0 ? "next-main" : "next-secondary"}
+                level={level}
+                colorTheme={colorTheme}
+              />
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 };

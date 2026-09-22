@@ -126,7 +126,12 @@ const TetrisGame: React.FC = () => {
             colorTheme={settings.colorTheme}
           />
           {gameState === "PAUSED" && (
-            <div className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center">
+            <div
+              className="absolute inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center"
+              role="status"
+              aria-live="polite"
+              aria-label="Game paused"
+            >
               <div className="text-3xl font-bold text-white">PAUSED</div>
             </div>
           )}
