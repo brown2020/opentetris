@@ -417,9 +417,21 @@ export function getDropPoints(
 // Level & Speed
 // ============================================================================
 
-// Level calculation based on lines cleared
-export function calculateLevel(lines: number, startingLevel: number = 1): number {
-  return Math.floor(lines / LINES_PER_LEVEL) + startingLevel;
+// Level calculation based on lines cleared.
+// Classic mode keeps the NES first transition: (start + 1) * 10 lines, then every 10.
+export function calculateLevel(
+  lines: number,
+  startingLevel: number = 1,
+  classic: boolean = false
+): number {
+  const start = Number.isFinite(startingLevel) ? Math.trunc(startingLevel) : 1;
+  if (!classic) {
+    return Math.floor(lines / LINES_PER_LEVEL) + start;
+  }
+
+  const firstThreshold = (start + 1) * LINES_PER_LEVEL;
+  if (lines < firstThreshold) return start;
+  return start + 1 + Math.floor((lines - firstThreshold) / LINES_PER_LEVEL);
 }
 
 // Modern speed calculation (linear decrease)

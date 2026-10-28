@@ -215,7 +215,11 @@ function lockAndSpawnNext(
     : boardWithPiece;
 
   const newLines = state.lines + linesCleared;
-  const newLevel = calculateLevel(newLines, state.settings.startingLevel);
+  const newLevel = calculateLevel(
+    newLines,
+    state.settings.startingLevel,
+    state.settings.mode === "classic"
+  );
   const linePoints = linesCleared > 0
     ? calculateScore(linesCleared, newLevel, state.settings.scoringSystem)
     : 0;
@@ -391,7 +395,11 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
         const newBoard = clearSpecificLines(state.board, state.lineClearAnimation.rows);
         const linesCleared = state.lineClearAnimation.rows.length;
         const newLines = state.lines + linesCleared;
-        const newLevel = calculateLevel(newLines, state.settings.startingLevel);
+        const newLevel = calculateLevel(
+          newLines,
+          state.settings.startingLevel,
+          state.settings.mode === "classic"
+        );
         const linePoints = calculateScore(linesCleared, newLevel, state.settings.scoringSystem);
         const newScore = state.score + linePoints;
 
