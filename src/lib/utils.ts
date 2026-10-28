@@ -33,38 +33,50 @@ export function createEmptyBoard(): Board {
 // Piece Rotation
 // ============================================================================
 
-// Get rotated shape for a piece - direct calculation without iteration
-export function getRotatedShape(piece: Tetromino): number[][] {
-  const shape = piece.shape;
-  const N = shape.length;
-  const rotation = piece.rotation % 4;
+function cloneShape(shape: readonly (readonly number[])[]): number[][] {
+  return shape.map((row) => [...row]);
+}
 
-  // No rotation needed
-  if (rotation === 0) {
-    return shape.map((row) => [...row]);
-  }
-
-  const rotated: number[][] = Array(N)
-    .fill(0)
-    .map(() => Array(N).fill(0));
-
-  for (let i = 0; i < N; i++) {
-    for (let j = 0; j < N; j++) {
-      switch (rotation) {
-        case 1: // 90 clockwise
-          rotated[j][N - 1 - i] = shape[i][j];
-          break;
-        case 2: // 180
-          rotated[N - 1 - i][N - 1 - j] = shape[i][j];
-          break;
-        case 3: // 270 clockwise (90 counter-clockwise)
-          rotated[N - 1 - j][i] = shape[i][j];
-          break;
-      }
+// Clockwise rotation around the matrix center. `size` is 4 for I and 3 for J/L/S/Z/T.
+function rotateClockwise(shape: readonly (readonly number[])[], size: number): number[][] {
+  const rotated = Array.from({ length: size }, () => Array<number>(size).fill(0));
+  for (let row = 0; row < size; row++) {
+    for (let col = 0; col < size; col++) {
+      rotated[col][size - 1 - row] = shape[row]?.[col] ?? 0;
     }
   }
-
   return rotated;
+}
+
+// SRS poses: I uses its 4×4 box, O never moves, and J/L/S/Z/T rotate inside the top-left 3×3.
+export function getRotatedShape(piece: Tetromino): number[][] {
+  const rotation = ((piece.rotation % 4) + 4) % 4;
+  if (piece.type === "O" || rotation === 0) {
+    return cloneShape(piece.shape);
+  }
+
+  if (piece.type === "I") {
+    let shape = cloneShape(piece.shape);
+    for (let turn = 0; turn < rotation; turn++) {
+      shape = rotateClockwise(shape, shape.length);
+    }
+    return shape;
+  }
+
+  let shape = Array.from({ length: 3 }, (_, row) =>
+    Array.from({ length: 3 }, (_, col) => piece.shape[row]?.[col] ?? 0)
+  );
+  for (let turn = 0; turn < rotation; turn++) {
+    shape = rotateClockwise(shape, 3);
+  }
+
+  const padded = Array.from({ length: 4 }, () => Array<number>(4).fill(0));
+  for (let row = 0; row < 3; row++) {
+    for (let col = 0; col < 3; col++) {
+      padded[row][col] = shape[row][col];
+    }
+  }
+  return padded;
 }
 
 // ============================================================================
