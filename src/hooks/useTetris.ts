@@ -555,6 +555,7 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
 
       if (state.heldPiece) {
         const newCurrentPiece = generateNewPiece(state.heldPiece);
+        if (!isValidMove(newCurrentPiece, state.board)) return state;
         return {
           ...state,
           currentPiece: newCurrentPiece,
@@ -580,6 +581,8 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
           newBag = result.newBag;
           newLastPieceType = newPiece.type;
         }
+
+        if (!isValidMove(newPiece, state.board)) return state;
 
         return {
           ...state,
