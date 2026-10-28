@@ -2,7 +2,13 @@
 import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useDAS } from "./useDAS";
 import { DAS_SETTINGS } from "@/lib/constants";
-import { directionStillHeld, LEFT_KEYS, RIGHT_KEYS, shouldIgnoreGameKey } from "@/lib/keyboard";
+import {
+  directionStillHeld,
+  isMenuKey,
+  LEFT_KEYS,
+  RIGHT_KEYS,
+  shouldIgnoreGameKey,
+} from "@/lib/keyboard";
 import { GameMode } from "@/types";
 
 interface KeyboardControls {
@@ -15,6 +21,7 @@ interface KeyboardControls {
   onPause: () => void;
   onReset: () => void;
   isEnabled?: boolean;
+  movementEnabled?: boolean;
   gameMode?: GameMode;
 }
 
@@ -36,6 +43,7 @@ export function useKeyboard({
   onPause,
   onReset,
   isEnabled = true,
+  movementEnabled = true,
   gameMode = "modern",
 }: KeyboardControls) {
   // Track which movement keys are currently held
@@ -53,7 +61,7 @@ export function useKeyboard({
     }
   }, [onMoveLeft, onMoveRight]);
 
-  const { startDAS, stopDAS } = useDAS(dasConfig, handleDASMove, isEnabled);
+  const { startDAS, stopDAS } = useDAS(dasConfig, handleDASMove, isEnabled && movementEnabled);
 
   // Non-DAS key actions
   const instantKeyActions = useMemo(
@@ -93,13 +101,15 @@ export function useKeyboard({
       heldKeysRef.current.add(event.key);
 
       // Handle left/right movement with DAS
+      if (!movementEnabled && !isMenuKey(event.key)) return;
+
       if (LEFT_KEYS.has(event.key)) {
-        startDAS("left");
+        if (movementEnabled) startDAS("left");
         return;
       }
 
       if (RIGHT_KEYS.has(event.key)) {
-        startDAS("right");
+        if (movementEnabled) startDAS("right");
         return;
       }
 
@@ -107,7 +117,7 @@ export function useKeyboard({
       const action = instantKeyActions.get(event.key);
       action?.();
     },
-    [isEnabled, instantKeyActions, startDAS]
+    [isEnabled, movementEnabled, instantKeyActions, startDAS]
   );
 
   const handleKeyUp = useCallback(

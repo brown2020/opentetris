@@ -1,3 +1,5 @@
+import type { GameState } from "@/types";
+
 export const LEFT_KEYS = new Set(["ArrowLeft", "a", "A"]);
 export const RIGHT_KEYS = new Set(["ArrowRight", "d", "D"]);
 
@@ -19,6 +21,20 @@ export function shouldIgnoreGameKey(event: {
     return INTERACTIVE_TAGS.has((target as { tagName: string }).tagName.toUpperCase());
   }
   return false;
+}
+
+const MENU_KEYS = new Set(["p", "P", "r", "R"]);
+
+export function keyboardMode(gameState: GameState): { listen: boolean; movement: boolean } {
+  if (gameState === "PLAYING" || gameState === "PAUSED") {
+    return { listen: true, movement: true };
+  }
+  if (gameState === "GAME_OVER") return { listen: true, movement: false };
+  return { listen: false, movement: false };
+}
+
+export function isMenuKey(key: string): boolean {
+  return MENU_KEYS.has(key);
 }
 
 export function directionStillHeld(

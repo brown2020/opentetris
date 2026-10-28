@@ -6,6 +6,7 @@ import { useKeyboard } from "@/hooks/useKeyboard";
 import { useTetris } from "@/hooks/useTetris";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { LINE_CLEAR_ANIMATION } from "@/lib/constants";
+import { keyboardMode } from "@/lib/keyboard";
 
 import Board from "./Board";
 import Controls from "./Controls";
@@ -53,8 +54,8 @@ const TetrisGame: React.FC = () => {
   const onMoveLeft = useCallback(() => movePiece(-1, 0), [movePiece]);
   const onMoveRight = useCallback(() => movePiece(1, 0), [movePiece]);
 
-  // Keyboard controls - only enabled when game is active
-  const isGameActive = gameState === "PLAYING" || gameState === "PAUSED";
+  // Reset and pause stay available on the game-over screen. Movement does not.
+  const keys = keyboardMode(gameState);
   useKeyboard({
     onMoveLeft,
     onMoveRight,
@@ -64,7 +65,8 @@ const TetrisGame: React.FC = () => {
     onHold: holdPiece,
     onPause: pauseGame,
     onReset: resetGame,
-    isEnabled: isGameActive,
+    isEnabled: keys.listen,
+    movementEnabled: keys.movement,
     gameMode: settings.mode,
   });
 

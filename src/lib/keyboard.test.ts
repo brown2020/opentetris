@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { directionStillHeld, shouldIgnoreGameKey } from "./keyboard";
+import { directionStillHeld, keyboardMode, shouldIgnoreGameKey } from "./keyboard";
 
 describe("game key guard", () => {
   it("ignores modifier chords and interactive targets", () => {
@@ -12,6 +12,14 @@ describe("game key guard", () => {
     assert.equal(shouldIgnoreGameKey({ target: { tagName: "DIV", isContentEditable: true } }), true);
     assert.equal(shouldIgnoreGameKey({ target: { tagName: "BODY" } }), false);
     assert.equal(shouldIgnoreGameKey({}), false);
+  });
+
+  it("keeps reset listening after game over without movement", () => {
+    assert.deepEqual(keyboardMode("GAME_OVER"), { listen: true, movement: false });
+    assert.deepEqual(keyboardMode("PLAYING"), { listen: true, movement: true });
+    assert.deepEqual(keyboardMode("PAUSED"), { listen: true, movement: true });
+    assert.deepEqual(keyboardMode("LINE_CLEAR"), { listen: false, movement: false });
+    assert.deepEqual(keyboardMode("INITIAL"), { listen: false, movement: false });
   });
 
   it("keeps DAS running while another key for that direction is held", () => {
