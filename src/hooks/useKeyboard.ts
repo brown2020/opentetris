@@ -2,6 +2,7 @@
 import { useEffect, useCallback, useMemo, useRef } from "react";
 import { useDAS } from "./useDAS";
 import { DAS_SETTINGS } from "@/lib/constants";
+import { directionStillHeld, LEFT_KEYS, RIGHT_KEYS, shouldIgnoreGameKey } from "@/lib/keyboard";
 import { GameMode } from "@/types";
 
 interface KeyboardControls {
@@ -24,9 +25,6 @@ const PREVENT_DEFAULT_KEYS = new Set([
   "ArrowRight",
   " ",
 ]);
-
-const LEFT_KEYS = new Set(["ArrowLeft", "a", "A"]);
-const RIGHT_KEYS = new Set(["ArrowRight", "d", "D"]);
 
 export function useKeyboard({
   onMoveLeft,
@@ -80,7 +78,7 @@ export function useKeyboard({
 
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
-      if (!isEnabled) return;
+      if (!isEnabled || shouldIgnoreGameKey(event)) return;
 
       // Prevent default for game keys
       if (PREVENT_DEFAULT_KEYS.has(event.key)) {
@@ -116,11 +114,11 @@ export function useKeyboard({
     (event: KeyboardEvent) => {
       heldKeysRef.current.delete(event.key);
 
-      // Stop DAS for left/right
+      // Stop DAS only after every alias for that direction is released.
       if (LEFT_KEYS.has(event.key)) {
-        stopDAS("left");
+        if (!directionStillHeld(heldKeysRef.current, "left")) stopDAS("left");
       } else if (RIGHT_KEYS.has(event.key)) {
-        stopDAS("right");
+        if (!directionStillHeld(heldKeysRef.current, "right")) stopDAS("right");
       }
     },
     [stopDAS]
