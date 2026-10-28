@@ -9,7 +9,7 @@
     "lint": "eslint src/",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test src/**/*.test.ts",
-    "doctor": "npx -y react-doctor@latest . --verbose --yes"
+    "doctor": "npx -y react-doctor@0.9.18 . --verbose --yes"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
