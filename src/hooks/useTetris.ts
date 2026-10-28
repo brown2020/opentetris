@@ -133,16 +133,17 @@ function getNextPieceModern(
   };
 }
 
-function getNextPieceNES(
-  lastPieceType: TetrominoType | null
-): {
+// Spawn the already queued NES piece and roll exactly one new preview from it.
+function spawnQueuedNES(state: TetrisState): {
   piece: Tetromino;
-  pieceType: TetrominoType;
+  nextPieces: TetrominoType[];
+  lastPieceType: TetrominoType;
 } {
-  const pieceType = generateNESRandom(lastPieceType);
+  const queued = state.nextPieces[0] ?? generateNESRandom(state.lastPieceType);
   return {
-    piece: generateNewPiece(pieceType),
-    pieceType,
+    piece: generateNewPiece(queued),
+    nextPieces: [generateNESRandom(queued)],
+    lastPieceType: queued,
   };
 }
 
@@ -227,11 +228,11 @@ function lockAndSpawnNext(
   let newLastPieceType: TetrominoType | null;
 
   if (state.settings.randomizer === "nes") {
-    const result = getNextPieceNES(pieceToLock.type);
+    const result = spawnQueuedNES(state);
     newPiece = result.piece;
-    newNextPieces = [result.pieceType]; // NES only shows 1 next piece
+    newNextPieces = result.nextPieces;
     newBag = state.bag;
-    newLastPieceType = result.pieceType;
+    newLastPieceType = result.lastPieceType;
   } else {
     const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
     newPiece = result.piece;
@@ -274,7 +275,7 @@ function lockAndSpawnNext(
 // Initial State
 // ============================================================================
 
-function createInitialState(): TetrisState {
+export function createInitialState(): TetrisState {
   return {
     board: createEmptyBoard(),
     currentPiece: null,
@@ -302,11 +303,12 @@ function initializeGame(highScore: number, settings: GameSettings): TetrisState 
   let lastPieceType: TetrominoType | null;
 
   if (settings.randomizer === "nes") {
-    const result = getNextPieceNES(null);
-    piece = result.piece;
-    nextPieces = [generateNESRandom(result.pieceType)];
+    const first = generateNESRandom(null);
+    const next = generateNESRandom(first);
+    piece = generateNewPiece(first);
+    nextPieces = [next];
     bag = [];
-    lastPieceType = result.pieceType;
+    lastPieceType = first;
   } else {
     const initialBag = ensureBag([], settings.nextPieceCount);
     const result = getNextPieceModern(initialBag, settings.nextPieceCount);
@@ -344,7 +346,7 @@ function initializeGame(highScore: number, settings: GameSettings): TetrisState 
 // Reducer
 // ============================================================================
 
-function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
+export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
   switch (action.type) {
     case "INIT": {
       const settings = action.settings || getStoredSettings() || DEFAULT_MODERN_SETTINGS;
@@ -400,11 +402,11 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
         let newLastPieceType: TetrominoType | null;
 
         if (state.settings.randomizer === "nes") {
-          const result = getNextPieceNES(state.lastPieceType);
+          const result = spawnQueuedNES(state);
           newPiece = result.piece;
-          newNextPieces = [generateNESRandom(result.pieceType)];
+          newNextPieces = result.nextPieces;
           newBag = state.bag;
-          newLastPieceType = result.pieceType;
+          newLastPieceType = result.lastPieceType;
         } else {
           const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
           newPiece = result.piece;
@@ -563,17 +565,20 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
         let newPiece: Tetromino;
         let newNextPieces: TetrominoType[];
         let newBag: TetrominoType[];
+        let newLastPieceType = state.lastPieceType;
 
         if (state.settings.randomizer === "nes") {
-          const result = getNextPieceNES(pieceToHold);
+          const result = spawnQueuedNES(state);
           newPiece = result.piece;
-          newNextPieces = [generateNESRandom(result.pieceType)];
+          newNextPieces = result.nextPieces;
           newBag = state.bag;
+          newLastPieceType = result.lastPieceType;
         } else {
           const result = getNextPieceModern(state.bag, state.settings.nextPieceCount);
           newPiece = result.piece;
           newNextPieces = result.nextPieces;
           newBag = result.newBag;
+          newLastPieceType = newPiece.type;
         }
 
         return {
@@ -581,6 +586,7 @@ function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
           currentPiece: newPiece,
           nextPieces: newNextPieces,
           bag: newBag,
+          lastPieceType: newLastPieceType,
           heldPiece: pieceToHold,
           canHold: false,
           statistics: updateStatistics(state.statistics, newPiece.type),
