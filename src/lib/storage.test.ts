@@ -60,10 +60,17 @@ describe("high score storage", () => {
       })
     );
     const store = memoryStore();
-    persistHighScore(Number.NaN, store);
-    assert.equal(store.map.has(HIGH_SCORE_KEY), false);
+    assert.equal(persistHighScore(Number.NaN, store), 0);
     persistHighScore(80, store);
     assert.equal(store.map.get(HIGH_SCORE_KEY), "80");
+  });
+
+  it("keeps the higher score already stored by another tab", () => {
+    const store = memoryStore({ [HIGH_SCORE_KEY]: "500" });
+    assert.equal(persistHighScore(120, store), 500);
+    assert.equal(store.map.get(HIGH_SCORE_KEY), "500");
+    assert.equal(persistHighScore(900, store), 900);
+    assert.equal(store.map.get(HIGH_SCORE_KEY), "900");
   });
 });
 

@@ -115,11 +115,17 @@ export function persistSettings(
 export function persistHighScore(
   score: number,
   store: KeyValueStore | null = browserStore()
-): void {
-  if (!store || !Number.isFinite(score) || score < 0) return;
+): number {
+  const incoming = Number.isFinite(score) && score > 0 ? Math.floor(score) : 0;
+  if (!store) return incoming;
+  const stored = readHighScore(store);
+  const next = Math.max(incoming, stored);
   try {
-    store.setItem(HIGH_SCORE_KEY, String(Math.floor(score)));
+    if (next !== stored || store.getItem(HIGH_SCORE_KEY) !== String(next)) {
+      store.setItem(HIGH_SCORE_KEY, String(next));
+    }
   } catch {
     // Ignore quota and security errors from localStorage.
   }
+  return next;
 }

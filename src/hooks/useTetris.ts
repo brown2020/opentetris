@@ -28,7 +28,15 @@ import {
   tryRotate,
 } from "@/lib/utils";
 import { LINE_CLEAR_ANIMATION } from "@/lib/constants";
-import { persistHighScore, persistSettings, readHighScore, readSettings, sanitizeSettings } from "@/lib/storage";
+import {
+  parseHighScore,
+  persistHighScore,
+  persistSettings,
+  readHighScore,
+  readSettings,
+  sanitizeSettings,
+  HIGH_SCORE_KEY,
+} from "@/lib/storage";
 
 // ============================================================================
 // Types
@@ -70,7 +78,8 @@ type TetrisAction =
   | { type: "HOLD_PIECE" }
   | { type: "TOGGLE_PAUSE" }
   | { type: "TICK" }
-  | { type: "LINE_CLEAR_TICK" };
+  | { type: "LINE_CLEAR_TICK" }
+  | { type: "SYNC_HIGH_SCORE"; highScore: number };
 
 // ============================================================================
 // Helper Functions
@@ -329,6 +338,12 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
 
     case "RESET_GAME": {
       return initializeGame(state.highScore, state.settings);
+    }
+
+    case "SYNC_HIGH_SCORE": {
+      const incoming = safeHighScore(action.highScore);
+      if (incoming <= state.highScore) return state;
+      return { ...state, highScore: incoming };
     }
 
     case "UPDATE_SETTINGS": {
@@ -613,8 +628,20 @@ export function useTetris() {
 
   useEffect(() => {
     if (state.gameState !== "GAME_OVER") return;
-    persistHighScore(state.highScore);
+    const saved = persistHighScore(state.highScore);
+    if (saved > state.highScore) {
+      dispatch({ type: "SYNC_HIGH_SCORE", highScore: saved });
+    }
   }, [state.gameState, state.highScore]);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== HIGH_SCORE_KEY) return;
+      dispatch({ type: "SYNC_HIGH_SCORE", highScore: parseHighScore(event.newValue) });
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // Derive ghost piece from current piece (only if ghost is enabled)
   const ghostPiece = useMemo(() => {
