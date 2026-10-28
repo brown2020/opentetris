@@ -28,6 +28,7 @@ import {
   tryRotate,
 } from "@/lib/utils";
 import { LINE_CLEAR_ANIMATION } from "@/lib/constants";
+import { persistHighScore, persistSettings, readHighScore, readSettings, sanitizeSettings } from "@/lib/storage";
 
 // ============================================================================
 // Types
@@ -75,36 +76,9 @@ type TetrisAction =
 // Helper Functions
 // ============================================================================
 
-const HIGH_SCORE_KEY = "tetris-highscore";
-const SETTINGS_KEY = "tetris-settings";
-
-function getStoredHighScore(): number {
-  if (typeof window === "undefined") return 0;
-  const stored = localStorage.getItem(HIGH_SCORE_KEY);
-  return stored ? parseInt(stored, 10) : 0;
-}
-
-function saveHighScore(score: number): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(HIGH_SCORE_KEY, String(score));
-  }
-}
-
-function getStoredSettings(): GameSettings | null {
-  if (typeof window === "undefined") return null;
-  const stored = localStorage.getItem(SETTINGS_KEY);
-  if (!stored) return null;
-  try {
-    return JSON.parse(stored) as GameSettings;
-  } catch {
-    return null;
-  }
-}
-
-function saveSettings(settings: GameSettings): void {
-  if (typeof window !== "undefined") {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }
+function safeHighScore(score: number): number {
+  if (!Number.isFinite(score) || score < 0) return 0;
+  return Math.floor(score);
 }
 
 function ensureBag(bag: TetrominoType[], previewCount: number): TetrominoType[] {
@@ -251,12 +225,8 @@ function lockAndSpawnNext(
   // Check for game over
   const isGameOver = !isValidMove(newPiece, newBoard);
   const finalHighScore = isGameOver
-    ? Math.max(newScore, state.highScore)
+    ? Math.max(safeHighScore(newScore), safeHighScore(state.highScore))
     : state.highScore;
-
-  if (isGameOver) {
-    saveHighScore(finalHighScore);
-  }
 
   return {
     board: newBoard,
@@ -353,8 +323,8 @@ function initializeGame(highScore: number, settings: GameSettings): TetrisState 
 export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisState {
   switch (action.type) {
     case "INIT": {
-      const settings = action.settings || getStoredSettings() || DEFAULT_MODERN_SETTINGS;
-      return initializeGame(action.highScore, settings);
+      const settings = sanitizeSettings(action.settings ?? DEFAULT_MODERN_SETTINGS);
+      return initializeGame(safeHighScore(action.highScore), settings);
     }
 
     case "RESET_GAME": {
@@ -362,15 +332,29 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
     }
 
     case "UPDATE_SETTINGS": {
-      const newSettings = { ...state.settings, ...action.settings };
-      saveSettings(newSettings);
+      const newSettings = sanitizeSettings({ ...state.settings, ...action.settings });
 
-      // If game hasn't started or is over, reinitialize with new settings
-      if (state.gameState === "INITIAL" || state.gameState === "GAME_OVER") {
+      const modeChanged = newSettings.mode !== state.settings.mode;
+      // A mode preset starts a new round. Starting level applies immediately.
+      if (
+        modeChanged ||
+        state.gameState === "INITIAL" ||
+        state.gameState === "GAME_OVER"
+      ) {
         return initializeGame(state.highScore, newSettings);
       }
 
-      return { ...state, settings: newSettings };
+      const level = calculateLevel(
+        state.lines,
+        newSettings.startingLevel,
+        newSettings.mode === "classic"
+      );
+      return {
+        ...state,
+        settings: newSettings,
+        level,
+        dropSpeed: calculateSpeed(level, newSettings.scoringSystem),
+      };
     }
 
     case "TOGGLE_PAUSE": {
@@ -426,12 +410,8 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
         const newStatistics = updateStatistics(state.statistics, newPiece.type);
         const isGameOver = !isValidMove(newPiece, newBoard);
         const finalHighScore = isGameOver
-          ? Math.max(newScore, state.highScore)
+          ? Math.max(safeHighScore(newScore), safeHighScore(state.highScore))
           : state.highScore;
-
-        if (isGameOver) {
-          saveHighScore(finalHighScore);
-        }
 
         return {
           ...state,
@@ -617,15 +597,24 @@ export function tetrisReducer(state: TetrisState, action: TetrisAction): TetrisS
 export function useTetris() {
   const [state, dispatch] = useReducer(tetrisReducer, null, createInitialState);
 
-  // Initialize game on client mount
+  // Initialize game on client mount. Storage stays out of the reducer.
   useEffect(() => {
-    const storedSettings = getStoredSettings();
     dispatch({
       type: "INIT",
-      highScore: getStoredHighScore(),
-      settings: storedSettings || undefined,
+      highScore: readHighScore(),
+      settings: readSettings(),
     });
   }, []);
+
+  useEffect(() => {
+    if (state.gameState === "INITIAL") return;
+    persistSettings(state.settings);
+  }, [state.gameState, state.settings]);
+
+  useEffect(() => {
+    if (state.gameState !== "GAME_OVER") return;
+    persistHighScore(state.highScore);
+  }, [state.gameState, state.highScore]);
 
   // Derive ghost piece from current piece (only if ghost is enabled)
   const ghostPiece = useMemo(() => {
