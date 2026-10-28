@@ -21,7 +21,9 @@ describe("security headers", () => {
   });
 
   it("is attached to every route by the Next config", async () => {
-    assert.equal(typeof nextConfig.headers, "function");
+    if (!nextConfig.headers) {
+      assert.fail("next config does not define headers");
+    }
     const rules = await nextConfig.headers();
     assert.equal(rules.length, 1);
     assert.equal(rules[0].source, "/:path*");

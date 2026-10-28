@@ -35,7 +35,7 @@ describe("SRS rotation", () => {
   });
 
   it("rotates T, J, L, S, and Z inside the 3x3 instead of shifting the 4x4", () => {
-    const expected: Record<string, [string[], string[], string[]]> = {
+    const expected: Record<"T" | "J" | "L" | "S" | "Z", [string[], string[], string[]]> = {
       T: [
         ["3,1", "4,0", "4,1", "5,1"],
         ["4,0", "4,1", "4,2", "5,1"],
@@ -63,7 +63,7 @@ describe("SRS rotation", () => {
       ],
     };
 
-    for (const type of Object.keys(expected) as (keyof typeof expected)[]) {
+    for (const type of ["T", "J", "L", "S", "Z"] as const) {
       const spawned = generateNewPiece(type);
       const once = tryRotate(spawned, board, "srs");
       const twice = once && tryRotate(once, board, "srs");

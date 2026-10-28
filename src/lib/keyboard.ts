@@ -5,11 +5,13 @@ export const RIGHT_KEYS = new Set(["ArrowRight", "d", "D"]);
 
 const INTERACTIVE_TAGS = new Set(["BUTTON", "A", "INPUT", "TEXTAREA", "SELECT"]);
 
+type GameKeyTarget = EventTarget | { tagName?: string; isContentEditable?: boolean };
+
 export function shouldIgnoreGameKey(event: {
   ctrlKey?: boolean;
   metaKey?: boolean;
   altKey?: boolean;
-  target?: EventTarget | null;
+  target?: GameKeyTarget | null;
 }): boolean {
   if (event.ctrlKey || event.metaKey || event.altKey) return true;
   const target = event.target;
