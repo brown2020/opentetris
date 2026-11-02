@@ -24,12 +24,14 @@ A browser Tetris game with a Guideline-style modern mode and an NES-inspired cla
 | TypeScript API for ESLint and Next | `typescript` (`npm:@typescript/typescript6`) | ^6.0.2 |
 | Node types | `@types/node` | ^26.6.6 |
 | Styling | `tailwindcss`, `@tailwindcss/postcss` | ^4.3.3 |
-| Icons | `lucide-react` | ^1.63.0 |
+| Icons | `lucide-react` | ^1.66.0 |
 | Variants | `class-variance-authority` | ^0.7.1 |
-| Lint | `eslint`, `eslint-config-next` | ^10.13.0, ^16.4.3 |
+| Lint | `eslint`, `eslint-config-next` | ^10.14.0, ^16.4.3 |
 | Tests | Node test runner via `tsx` | ^4.23.15 |
 
-TypeScript 7 does not ship a JavaScript compiler API. `typescript-eslint` still imports `typescript`, so that name is aliased to `@typescript/typescript6`. `npm run typecheck` runs TypeScript 7’s `tsc`.
+TypeScript 7 does not ship a JavaScript compiler API. `typescript-eslint` 8.72.1 still peers `typescript` at `>=4.8.4 <6.1.0`, so that name stays aliased to `@typescript/typescript6`. `npm run typecheck` runs TypeScript 7’s `tsc`.
+
+`minimatch` is overridden to 11.0.4. ESLint and `typescript-eslint` still declare older `minimatch` releases inside [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 
 ## Project structure
 
@@ -50,7 +52,7 @@ roadmap.md
 
 ### Prerequisites
 
-- Node.js 22 (the version CI uses) or a current LTS
+- Node.js 24 (the version CI uses)
 - npm
 
 ### Install
@@ -97,13 +99,13 @@ Ctrl, Cmd, and Alt chords are ignored, as are keys aimed at buttons and fields.
 | `npm run lint` | ESLint on `src/` |
 | `npm run typecheck` | `tsc --noEmit` (TypeScript 7) |
 | `npm test` | Node tests via `tsx` |
-| `npm run doctor` | Optional scan with pinned `react-doctor@0.9.18` |
+| `npm run doctor` | Optional scan with pinned `react-doctor@0.9.22` |
 
 ## Testing and CI
 
-Tests live next to the rules they cover: scoring and classic level curve, SRS rotation, NES next queue, hold collision, settings updates, storage, keyboard guards, route absence, and security headers.
+Tests live next to the rules they cover: scoring and classic level curve, SRS rotation, NES next queue, hold collision, settings updates, storage, keyboard guards, route absence, security headers, and one reducer round (spawn, rotate, hard drop, line clear, pause, game over, reset).
 
-GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, lint, typecheck, test, and build on `dev` and `main` with Node 22. The workflow does not use secrets.
+GitHub Actions (`.github/workflows/ci.yml`) runs `npm ci`, lint, typecheck, test, and build on `dev` and `main` with Node 24. The workflow does not use secrets.
 
 ## Deployment
 

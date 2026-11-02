@@ -6,7 +6,7 @@ Punchlist after the dependency and rules pass on `dev`. Nothing here is a secret
 
 1. Move `typescript-eslint` onto the TypeScript 7 API when [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) lands, then drop the `@typescript/typescript6` alias. Until then, `tsc` is 7 and ESLint imports TypeScript 6.
 2. Enforce `docs/runtime-budget.txt` (static JS ≤ 900KB) in CI, or delete the budget if it is no longer a goal.
-3. Add a browser test for one full round: spawn, rotate, hard drop, line clear, pause, game over, and R to restart. Unit tests do not mount the React tree.
+3. Add a browser test that mounts the React tree for one round. `src/hooks/useTetris.test.ts` already drives the reducer through spawn, rotate, hard drop, line clear, pause, game over, and reset. Unit tests still do not mount React.
 4. Expose the Game Boy palette in the settings panel. The renderer already supports `colorTheme: "gameboy"`.
 5. Give mobile buttons press-and-hold DAS. Taps only move one cell today.
 6. Pin `actions/checkout` and `actions/setup-node` to commit SHAs when the Actions policy is tightened.
@@ -19,7 +19,7 @@ Punchlist after the dependency and rules pass on `dev`. Nothing here is a secret
 - The high score is written at game over. Quitting mid-round drops a score that has not been saved yet.
 - Another tab’s settings are last-write-wins. Only the high score is merged by max.
 - The game-over overlay is not a focus-trapped dialog. R works; keyboard users can also tab to Play Again.
-- `npm run doctor` still downloads pinned `react-doctor@0.9.18` through `npx` instead of a lockfile dependency. It is not part of CI.
+- `npm run doctor` still downloads pinned `react-doctor@0.9.22` through `npx` instead of a lockfile dependency. It is not part of CI.
 - `docs/architecture.md` still describes the old in-reducer `saveHighScore` helper. `spec.md` is the current description.
 
 ## Not in this repo
