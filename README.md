@@ -18,18 +18,18 @@ A browser Tetris game with a Guideline-style modern mode and an NES-inspired cla
 
 | Area | Package | Range |
 | --- | --- | --- |
-| Framework | `next` | ^16.4.3 |
+| Framework | `next` | ^16.4.5 |
 | UI | `react`, `react-dom` | ^19.3.1 |
 | Compiler (`tsc`) | `@typescript/native` (`npm:typescript`) | ^7.0.2 |
-| TypeScript API for ESLint and Next | `typescript` (`npm:@typescript/typescript6`) | ^6.0.2 |
-| Node types | `@types/node` | ^26.6.6 |
-| Styling | `tailwindcss`, `@tailwindcss/postcss` | ^4.3.3 |
-| Icons | `lucide-react` | ^1.66.0 |
+| TypeScript API for ESLint and Next | `typescript` | 6.0.3 |
+| Node types | `@types/node` | ^24.19.2 |
+| Styling | `tailwindcss`, `@tailwindcss/postcss` | ^4.3.4 |
+| Icons | `lucide-react` | ^1.68.0 |
 | Variants | `class-variance-authority` | ^0.7.1 |
-| Lint | `eslint`, `eslint-config-next` | ^10.14.0, ^16.4.3 |
+| Lint | `eslint`, `eslint-config-next` | ^10.14.0, ^16.4.5 |
 | Tests | Node test runner via `tsx` | ^4.23.15 |
 
-TypeScript 7 does not ship a JavaScript compiler API. `typescript-eslint` 8.72.1 still peers `typescript` at `>=4.8.4 <6.1.0`, so that name stays aliased to `@typescript/typescript6`. `npm run typecheck` runs TypeScript 7’s `tsc`.
+TypeScript 7 does not ship a JavaScript compiler API. `typescript-eslint` 8.72.1 still peers `typescript` at `>=4.8.4 <6.1.0`, so the `typescript` package stays on 6.0.3. `npm run typecheck` runs TypeScript 7’s `tsc` from `@typescript/native`. `@types/node` stays on 24.x to match the Node 24 runtime.
 
 `minimatch` is overridden to 11.0.4. ESLint and `typescript-eslint` still declare older `minimatch` releases inside [GHSA-g3hv-75wg-m249](https://github.com/advisories/GHSA-g3hv-75wg-m249).
 

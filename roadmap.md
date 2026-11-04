@@ -4,7 +4,7 @@ Punchlist after the dependency and rules pass on `dev`. Nothing here is a secret
 
 ## Next
 
-1. Move `typescript-eslint` onto the TypeScript 7 API when [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) lands, then drop the `@typescript/typescript6` alias. Until then, `tsc` is 7 and ESLint imports TypeScript 6.
+1. Move `typescript-eslint` onto the TypeScript 7 API when [typescript-eslint#10940](https://github.com/typescript-eslint/typescript-eslint/issues/10940) lands. Until then, `tsc` is 7 via `@typescript/native` and the `typescript` package stays on 6.0.3.
 2. Enforce `docs/runtime-budget.txt` (static JS ≤ 900KB) in CI, or delete the budget if it is no longer a goal.
 3. Add a browser test that mounts the React tree for one round. `src/hooks/useTetris.test.ts` already drives the reducer through spawn, rotate, hard drop, line clear, pause, game over, and reset. Unit tests still do not mount React.
 4. Expose the Game Boy palette in the settings panel. The renderer already supports `colorTheme: "gameboy"`.
